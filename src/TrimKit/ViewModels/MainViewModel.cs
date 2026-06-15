@@ -51,6 +51,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isInstallMounted;
     [ObservableProperty] private bool _isBootMounted;
 
+    // Preset-loaded customization (wallpapers, service changes from WinReducer)
+    private WallpaperPreset? _loadedWallpapers;
+    private List<ServicePreset> _loadedServiceChanges = [];
+
     public ObservableCollection<WimImageInfo> WimImages { get; } = [];
     public ObservableCollection<WindowsPackage> Packages { get; } = [];
     public ObservableCollection<WindowsFeature> Features { get; } = [];
@@ -625,6 +629,7 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// Loads services on-demand (called when user navigates to Services tab).
+    /// Uses multiple approaches since DISM holds a lock on the mounted hive.
     /// </summary>
     [RelayCommand]
     private async Task LoadServicesAsync()
@@ -637,28 +642,67 @@ public partial class MainViewModel : ObservableObject
             StatusText = "Scanning services...";
             var mountTarget = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
 
-            var svcTask = Task.Run(async () => await _serviceManager.GetServicesAsync(mountTarget));
+            List<WindowsServiceInfo>? services = null;
+
+            // Try the registry approach (copies hive to temp)
             try
             {
-                var services = await svcTask.WaitAsync(TimeSpan.FromSeconds(15));
-                foreach (var svc in services) Services.Add(svc);
-                StatusText = $"Found {Services.Count} services";
+                var svcTask = Task.Run(async () => await _serviceManager.GetServicesAsync(mountTarget));
+                services = await svcTask.WaitAsync(TimeSpan.FromSeconds(20));
             }
-            catch (TimeoutException)
+            catch (Exception ex)
             {
-                StatusText = "Service scan timed out — registry query too slow for this image";
-                _logService.Log(LogLevel.Warning, "Service scan timed out (15s). Image may have too many registry keys.");
+                _logService.Log(LogLevel.Warning, $"Registry-based service scan failed: {ex.Message}");
             }
+
+            // Fallback: scan drivers directory + known services
+            if (services == null || services.Count == 0)
+            {
+                _logService.Log(LogLevel.Info, "Using filesystem-based service detection fallback...");
+                services = GetServicesFromFilesystem(mountTarget);
+            }
+
+            foreach (var svc in services) Services.Add(svc);
+            StatusText = Services.Count > 0
+                ? $"Found {Services.Count} services"
+                : "No services found — load a WinReducer preset to configure services";
         }
         catch (Exception ex)
         {
             StatusText = $"Service scan failed: {ex.Message}";
-            _logService.Log(LogLevel.Warning, $"Service scan failed: {ex.Message}");
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Filesystem-based service detection — scans drivers dir and known service executables.
+    /// Doesn't require registry access. Less accurate but always works.
+    /// </summary>
+    private List<WindowsServiceInfo> GetServicesFromFilesystem(string mountPath)
+    {
+        var services = new List<WindowsServiceInfo>();
+        var driversDir = Path.Combine(mountPath, @"Windows\System32\drivers");
+
+        // Scan .sys files in drivers directory
+        if (Directory.Exists(driversDir))
+        {
+            foreach (var file in Directory.GetFiles(driversDir, "*.sys"))
+            {
+                var name = Path.GetFileNameWithoutExtension(file);
+                services.Add(new WindowsServiceInfo
+                {
+                    ServiceName = name,
+                    DisplayName = name,
+                    StartType = ServiceStartType.System,
+                    OriginalStartType = ServiceStartType.System
+                });
+            }
+        }
+
+        return services.OrderBy(s => s.ServiceName).ToList();
     }
 
     [RelayCommand]
@@ -927,6 +971,68 @@ public partial class MainViewModel : ObservableObject
                 }
 
                 _logService.Log(LogLevel.Success, $"NTLite-mapped removals complete ({resolvedPlan.TotalActions} actions)");
+            }
+
+            // Apply wallpapers from loaded preset (WinReducer Appearance section)
+            if (_loadedWallpapers != null)
+            {
+                StatusText = "[install.wim] Applying wallpapers...";
+                try
+                {
+                    if (!string.IsNullOrEmpty(_loadedWallpapers.DesktopWallpaperPath) && File.Exists(_loadedWallpapers.DesktopWallpaperPath))
+                    {
+                        await _customizationService.SetDesktopWallpaperAsync(installMountTarget, _loadedWallpapers.DesktopWallpaperPath);
+                        _logService.Log(LogLevel.Success, $"Desktop wallpaper set: {Path.GetFileName(_loadedWallpapers.DesktopWallpaperPath)}");
+                    }
+                    if (!string.IsNullOrEmpty(_loadedWallpapers.LockScreenPath) && File.Exists(_loadedWallpapers.LockScreenPath))
+                    {
+                        await _customizationService.SetLockScreenWallpaperAsync(installMountTarget, _loadedWallpapers.LockScreenPath);
+                        _logService.Log(LogLevel.Success, $"Lock screen set: {Path.GetFileName(_loadedWallpapers.LockScreenPath)}");
+                    }
+                    if (!string.IsNullOrEmpty(_loadedWallpapers.SetupScreenPath) && File.Exists(_loadedWallpapers.SetupScreenPath))
+                    {
+                        // Setup screen goes into boot.wim
+                        if (IsBootMounted && !string.IsNullOrEmpty(BootWimPath))
+                        {
+                            await _customizationService.SetBootWimWallpaperAsync(BootWimPath, _loadedWallpapers.SetupScreenPath);
+                            _logService.Log(LogLevel.Success, $"Boot/setup wallpaper set: {Path.GetFileName(_loadedWallpapers.SetupScreenPath)}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Wallpaper application failed: {ex.Message}");
+                }
+            }
+
+            // Apply service changes from loaded preset (WinReducer Services section)
+            if (_loadedServiceChanges.Count > 0)
+            {
+                StatusText = $"[install.wim] Configuring {_loadedServiceChanges.Count} service(s) from preset...";
+                foreach (var svc in _loadedServiceChanges)
+                {
+                    try
+                    {
+                        var startType = svc.StartType switch
+                        {
+                            2 => ServiceStartType.Automatic,
+                            3 => ServiceStartType.Manual,
+                            4 => ServiceStartType.Disabled,
+                            5 => ServiceStartType.Remove,
+                            _ => ServiceStartType.Disabled
+                        };
+
+                        if (startType == ServiceStartType.Remove)
+                            await _serviceManager.RemoveServiceAsync(installMountTarget, svc.ServiceName);
+                        else
+                            await _serviceManager.SetServiceStartTypeAsync(installMountTarget, svc.ServiceName, startType);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Service {svc.ServiceName}: {ex.Message}");
+                    }
+                }
+                _logService.Log(LogLevel.Success, $"Applied {_loadedServiceChanges.Count} service change(s) from preset");
             }
 
             // DISM image cleanup (shrinks WIM after component removal)
@@ -1470,6 +1576,24 @@ public partial class MainViewModel : ObservableObject
             if (!DriverPaths.Contains(path))
                 DriverPaths.Add(path);
         }
+
+        // Store wallpaper settings for Apply phase
+        if (preset.Wallpapers != null)
+        {
+            _loadedWallpapers = preset.Wallpapers;
+            _logService.Log(LogLevel.Info, "Preset includes wallpaper customization");
+        }
+
+        // Store service changes for Apply phase (additive)
+        if (preset.ServiceChanges.Count > 0)
+        {
+            foreach (var svc in preset.ServiceChanges)
+            {
+                if (!_loadedServiceChanges.Any(s => s.ServiceName.Equals(svc.ServiceName, StringComparison.OrdinalIgnoreCase)))
+                    _loadedServiceChanges.Add(svc);
+            }
+            _logService.Log(LogLevel.Info, $"Preset includes {preset.ServiceChanges.Count} service change(s)");
+        }
     }
 
     [RelayCommand]
@@ -1491,6 +1615,24 @@ public partial class MainViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    [RelayCommand]
+    private void SelectAllApps() { foreach (var a in ProvisionedApps) a.IsSelected = true; }
+
+    [RelayCommand]
+    private void SelectAllCapabilities() { foreach (var c in Capabilities) c.IsSelected = true; }
+
+    [RelayCommand]
+    private void SelectAllFonts() { foreach (var f in Fonts) if (!f.IsProtected) f.IsSelected = true; }
+
+    [RelayCommand]
+    private void SelectAllKeyboards() { foreach (var k in KeyboardLayouts) k.IsSelected = true; }
+
+    [RelayCommand]
+    private void SelectAllLanguages() { foreach (var l in Languages) l.IsSelected = true; }
+
+    [RelayCommand]
+    private void SelectAllDrivers() { foreach (var d in InboxDrivers) d.IsSelected = true; }
 
     [RelayCommand]
     private void ClearLog()

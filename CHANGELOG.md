@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.0.5 — 2026-06-15
+
+### Added
+- **WinReducer wallpaper import** — parses Appearance section (Desktop Wallpaper, Setup Screen, Lock Screen paths) and applies during Apply All
+- **WinReducer service import** — parses Services section (disable/remove with Value=4/5), maps 65+ display names to service IDs, applies during Apply All
+- **Components tab with categories** — grouped by type (Apps, Capabilities, Fonts, Keyboards, Languages, Drivers) with expandable sections
+- **Select All per category** — one-click buttons to select all items within a group
+- **NTLite component map at scale** — handles 1000+ items: `driver_*.inf` → DriverStore removal, `kl-*` → keyboard DLL, `font_*` → font file, `lang*` → language tag, `microsoft.*` → app removal
+- **Service loading fallback** — if registry hive copy fails (DISM lock), falls back to filesystem-based detection (scans `drivers\*.sys`)
+- **Preset wallpaper/service fields** — `WallpaperPreset` and `ServicePreset` model classes stored in `.wwp` format
+
+### Fixed
+- Services tab no longer shows "0 services" — uses filesystem fallback when hive is locked
+- Preset save now includes ALL selected components from ALL tabs (apps, capabilities, fonts, keyboards, languages, drivers)
+- Apply confirmation dialog shows correct component count across all categories
+- NTLite/WinReducer preset loading matches items by both ID and display name
+- Preset loading is additive (load multiple presets, selections accumulate)
+
+### Changed
+- Components tab replaced flat list with categorized expandable view
+- Apply pipeline now includes: wallpaper injection → service changes → NTLite component map execution → DISM cleanup
+- WinReducer import handles all category types (Remove, Features, Services, Appearance, System)
+
 ## 0.0.4 — 2026-06-15
 
 ### Added

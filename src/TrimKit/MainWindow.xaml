@@ -159,7 +159,7 @@
                         <TextBlock Text="&#x1F9D9;" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBlock Text="TrimKit" FontSize="16" FontWeight="Bold" Foreground="#8AB4F8"/>
                     </StackPanel>
-                    <TextBlock Text="v0.0.4" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
+                    <TextBlock Text="v0.0.5" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
                 </StackPanel>
 
                 <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0"
@@ -475,25 +475,128 @@
                     </ListBox>
                 </Grid>
 
-                <!-- Tab 9: Components (Capabilities) -->
+                <!-- Tab 9: Components (ALL removable items grouped by category) -->
                 <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=9}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Capabilities — check to remove" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding Capabilities}" Background="#1C1C1F" BorderBrush="#303336">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
-                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0"/>
-                                    </StackPanel>
-                                </CheckBox>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="All Components — grouped by category" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Check items to remove. Use Select All per category. SafetyGuard protects critical items." 
+                                   Foreground="#80868E" FontSize="11.5"/>
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- Apps -->
+                            <Expander Header="{Binding ProvisionedApps.Count, StringFormat='Apps ({0})'}" Foreground="#8AB4F8" IsExpanded="True" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <Button Content="Select All Apps" Style="{StaticResource ChromeButton}" Padding="8,3" HorizontalAlignment="Left" Margin="0,4,0,4"
+                                            Command="{Binding SelectAllAppsCommand}"/>
+                                    <ItemsControl ItemsSource="{Binding ProvisionedApps}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="16,2,0,2">
+                                                    <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+                            <!-- Capabilities -->
+                            <Expander Header="{Binding Capabilities.Count, StringFormat='Capabilities ({0})'}" Foreground="#8AB4F8" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <Button Content="Select All Capabilities" Style="{StaticResource ChromeButton}" Padding="8,3" HorizontalAlignment="Left" Margin="0,4,0,4"
+                                            Command="{Binding SelectAllCapabilitiesCommand}"/>
+                                    <ItemsControl ItemsSource="{Binding Capabilities}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="16,2,0,2">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0" FontSize="11"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+                            <!-- Fonts -->
+                            <Expander Header="{Binding Fonts.Count, StringFormat='Fonts ({0})'}" Foreground="#8AB4F8" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <Button Content="Select All Fonts" Style="{StaticResource ChromeButton}" Padding="8,3" HorizontalAlignment="Left" Margin="0,4,0,4"
+                                            Command="{Binding SelectAllFontsCommand}"/>
+                                    <ItemsControl ItemsSource="{Binding Fonts}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding IsProtected, Converter={StaticResource InverseBool}}" 
+                                                          Foreground="#E8EAED" Margin="16,2,0,2">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                                        <TextBlock Text="🔒" Visibility="{Binding IsProtected, Converter={StaticResource BoolToVis}}" Margin="6,0,0,0"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+                            <!-- Keyboard Layouts -->
+                            <Expander Header="{Binding KeyboardLayouts.Count, StringFormat='Keyboard Layouts ({0})'}" Foreground="#8AB4F8" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <Button Content="Select All Keyboards" Style="{StaticResource ChromeButton}" Padding="8,3" HorizontalAlignment="Left" Margin="0,4,0,4"
+                                            Command="{Binding SelectAllKeyboardsCommand}"/>
+                                    <ItemsControl ItemsSource="{Binding KeyboardLayouts}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="16,2,0,2">
+                                                    <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+                            <!-- Languages -->
+                            <Expander Header="{Binding Languages.Count, StringFormat='Languages ({0})'}" Foreground="#8AB4F8" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <Button Content="Select All Languages" Style="{StaticResource ChromeButton}" Padding="8,3" HorizontalAlignment="Left" Margin="0,4,0,4"
+                                            Command="{Binding SelectAllLanguagesCommand}"/>
+                                    <ItemsControl ItemsSource="{Binding Languages}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="16,2,0,2">
+                                                    <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+                            <!-- Inbox Drivers -->
+                            <Expander Header="{Binding InboxDrivers.Count, StringFormat='Inbox Drivers ({0})'}" Foreground="#8AB4F8" Margin="0,0,0,4">
+                                <StackPanel>
+                                    <Button Content="Select All Drivers" Style="{StaticResource ChromeButton}" Padding="8,3" HorizontalAlignment="Left" Margin="0,4,0,4"
+                                            Command="{Binding SelectAllDriversCommand}"/>
+                                    <ItemsControl ItemsSource="{Binding InboxDrivers}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="16,2,0,2">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0" FontSize="11"/>
+                                                        <TextBlock Text="{Binding SizeDisplay}" Foreground="#5F6368" Margin="12,0,0,0" FontSize="11"/>
+                                                    </StackPanel>
+                                                </CheckBox>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- Tab 10: Tweaks -->

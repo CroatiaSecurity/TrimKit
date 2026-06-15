@@ -306,8 +306,7 @@ public class PresetService : IPresetService
         if (DateTime.TryParse(date, out var dt))
             preset.CreatedDate = dt;
 
-        // Parse Components — WinReducer format:
-        // <Element Category="Remove - Accessories" Name="..." Selected="true" />
+        // Parse Components
         var components = root.Element("Components");
         if (components != null)
         {
@@ -316,25 +315,55 @@ public class PresetService : IPresetService
                 var category = elem.Attribute("Category")?.Value ?? "";
                 var name = elem.Attribute("Name")?.Value ?? "";
                 var selected = elem.Attribute("Selected")?.Value;
+                var value = elem.Attribute("Value")?.Value ?? "";
 
-                // In WinReducer, Selected="true" means the item IS SELECTED FOR ACTION
-                // For "Remove -" categories, selected=true means REMOVE
-                // For "Features" category, it's about enabling/disabling features
                 var isRemoveCategory = category.StartsWith("Remove", StringComparison.OrdinalIgnoreCase)
                     || category.StartsWith("EXPERIMENTAL - Remove", StringComparison.OrdinalIgnoreCase);
                 var isFeatureCategory = category.Equals("Features", StringComparison.OrdinalIgnoreCase);
+                var isServiceCategory = category.Equals("Services", StringComparison.OrdinalIgnoreCase);
+                var isAppearanceCategory = category.Equals("Appearance", StringComparison.OrdinalIgnoreCase);
 
+                // === SERVICES ===
+                if (isServiceCategory && selected == "true" && !string.IsNullOrEmpty(value))
+                {
+                    if (int.TryParse(value, out var startType))
+                    {
+                        preset.ServiceChanges.Add(new ServicePreset
+                        {
+                            DisplayName = name,
+                            ServiceName = WinReducerServiceNameToId(name),
+                            StartType = startType
+                        });
+                    }
+                    continue;
+                }
+
+                // === APPEARANCE (wallpapers) ===
+                if (isAppearanceCategory && selected == "true" && !string.IsNullOrEmpty(value))
+                {
+                    preset.Wallpapers ??= new WallpaperPreset();
+                    if (name.Contains("Desktop Wallpaper", StringComparison.OrdinalIgnoreCase))
+                        preset.Wallpapers.DesktopWallpaperPath = value;
+                    else if (name.Contains("Setup Screen", StringComparison.OrdinalIgnoreCase) && !name.Contains("Window"))
+                        preset.Wallpapers.SetupScreenPath = value;
+                    else if (name.Contains("Lockscreen", StringComparison.OrdinalIgnoreCase))
+                        preset.Wallpapers.LockScreenPath = value;
+                    continue;
+                }
+
+                // === FEATURES ===
                 if (isFeatureCategory && selected == "true")
                 {
-                    // WinReducer features with Value="3" means remove/disable, Value="1" means enable
-                    var featureValue = elem.Attribute("Value")?.Value;
                     preset.FeatureChanges.Add(new FeaturePreset
                     {
                         FeatureName = name,
-                        Enable = featureValue == "1"
+                        Enable = value == "1"
                     });
+                    continue;
                 }
-                else if (isRemoveCategory)
+
+                // === REMOVE CATEGORIES ===
+                if (isRemoveCategory)
                 {
                     var component = new PresetComponent
                     {
@@ -347,12 +376,90 @@ public class PresetService : IPresetService
                     if (selected == "true")
                         preset.RemoveList.Add(component);
                     else
-                        preset.KeepList.Add(component); // Not selected = explicitly kept
+                        preset.KeepList.Add(component);
                 }
             }
         }
 
         return preset;
+    }
+
+    /// <summary>
+    /// Maps WinReducer service display names to actual Windows service IDs.
+    /// </summary>
+    private static string WinReducerServiceNameToId(string displayName)
+    {
+        // WinReducer uses display names like "ActiveX Service" → real name is "AxInstSV"
+        // Common mappings:
+        return displayName switch
+        {
+            "ActiveX Service" => "AxInstSV",
+            "AllJoyn Router Service" => "AJRouter",
+            "App Readiness Service" => "AppReadiness",
+            "Application Layer Gateway Service" => "ALG",
+            "Assigned Access Manager Service" => "AssignedAccessManager",
+            "Auto Time Zone Updater Service" => "tzautoupdate",
+            "Background Intelligent Transfer Service" => "BITS",
+            "Beep Service" => "Beep",
+            "BitLocker Drive Encryption Service" => "BDESVC",
+            "Block Level Backup Engine Service" => "wbengine",
+            "Bluetooth Audio Gateway Service" => "BTAGService",
+            "Bluetooth AVCTP Service" => "BthAvctpSvc",
+            "Bluetooth Support Service" => "bthserv",
+            "BranchCache Service" => "PeerDistSvc",
+            "Capture Service" => "CaptureService",
+            "Cellular Time Service" => "autotimesvc",
+            "COM+ Event System Service" => "EventSystem",
+            "COM+ System Application Service" => "COMSysApp",
+            "Computer Browser Service" => "Browser",
+            "Connected Devices Platform Service" => "CDPSvc",
+            "Delivery Optimization Service" => "DoSvc",
+            "Device Management Enrollment Service" => "DmEnrollmentSvc",
+            "Diagnostic Policy Service" => "DPS",
+            "Distributed Link Tracking Client Service" => "TrkWks",
+            "DNS Client Service" => "Dnscache",
+            "Fax Service" => "Fax",
+            "Geolocation Service" => "lfsvc",
+            "Microsoft Account Sign-in Assistant Service" => "wlidsvc",
+            "Microsoft Store Install Service" => "InstallService",
+            "Network Connected Devices Auto-Setup Service" => "NcdAutoSetup",
+            "Parental Controls Service" => "WpcMonSvc",
+            "Payment and NFC/SE Manager Service" => "SEMgrSvc",
+            "Phone Service" => "PhoneSvc",
+            "Portable Device Enumerator Service" => "WPDBusEnum",
+            "Print Spooler Service" => "Spooler",
+            "Remote Desktop Configuration Service" => "SessionEnv",
+            "Remote Desktop Services" => "TermService",
+            "Remote Registry Service" => "RemoteRegistry",
+            "Retail Demo Service" => "RetailDemo",
+            "Secondary Logon Service" => "seclogon",
+            "Sensor Data Service" => "SensorDataService",
+            "Sensor Monitoring Service" => "SensrSvc",
+            "Sensor Service" => "SensorService",
+            "Smart Card Service" => "SCardSvr",
+            "SNMP Trap Service" => "SNMPTRAP",
+            "Spot Verifier Service" => "svsvc",
+            "Telephony Service" => "TapiSrv",
+            "Touch Keyboard and Handwriting Panel Service" => "TabletInputService",
+            "WalletService Service" => "WalletService",
+            "Web Threat Defense Service" => "webthreatdefsvc",
+            "Windows Biometric Service" => "WbioSrvc",
+            "Windows Error Reporting Service" => "WerSvc",
+            "Windows Event Collector Service" => "Wecsvc",
+            "Windows Insider Service" => "wisvc",
+            "Windows Media Player Network Sharing Service" => "WMPNetworkSvc",
+            "Windows Mobile Hotspot Service" => "icssvc",
+            "Windows Push Notifications System Service" => "WpnService",
+            "Windows Remote Management (WS-Management) Service" => "WinRM",
+            "Windows Search Service" => "WSearch",
+            "Windows Update Service" => "wuauserv",
+            "Xbox Accessory Management Service" => "XboxGipSvc",
+            "Xbox Game Monitoring Service" => "xbgm",
+            "Xbox Live Auth Manager Service" => "XblAuthManager",
+            "Xbox Live Game Save Service" => "XblGameSave",
+            "Xbox Live Networking Service" => "XboxNetApiSvc",
+            _ => displayName.Replace(" Service", "").Replace(" ", "")
+        };
     }
 
     private static string GenerateWinReducerId(string category, string name)

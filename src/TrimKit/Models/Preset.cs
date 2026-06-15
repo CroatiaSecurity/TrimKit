@@ -38,6 +38,35 @@ public class Preset
     /// Driver paths to integrate.
     /// </summary>
     public List<string> DriverPaths { get; set; } = [];
+
+    /// <summary>
+    /// Service configuration changes (disable, manual, remove).
+    /// Parsed from WinReducer "Services" category.
+    /// </summary>
+    public List<ServicePreset> ServiceChanges { get; set; } = [];
+
+    /// <summary>
+    /// Wallpaper/appearance settings.
+    /// Parsed from WinReducer "Appearance" category.
+    /// </summary>
+    public WallpaperPreset? Wallpapers { get; set; }
+}
+
+public class ServicePreset
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    /// <summary>
+    /// WinReducer values: 2=Automatic, 3=Manual, 4=Disabled, 5=Removed
+    /// </summary>
+    public int StartType { get; set; }
+}
+
+public class WallpaperPreset
+{
+    public string? DesktopWallpaperPath { get; set; }
+    public string? SetupScreenPath { get; set; }
+    public string? LockScreenPath { get; set; }
 }
 
 /// <summary>
