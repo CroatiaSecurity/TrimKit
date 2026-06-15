@@ -332,14 +332,30 @@
                         <!-- Divider -->
                         <Border Height="1" Background="#3C4043" Margin="0,14,0,14"/>
 
-                        <!-- Section 2: Microsoft Direct -->
-                        <TextBlock Text="Microsoft Official ISO" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <TextBlock Text="Opens Microsoft's download page in your browser. Select your language there and download." 
-                                   Foreground="#5F6368" FontSize="10" Margin="0,0,0,8" TextWrapping="Wrap"/>
-
-                        <Button Content="Open Microsoft Download Page" Command="{Binding OpenMicrosoftPageCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="12,8"
-                                FontSize="11.5"/>
+                        <!-- Section 2: Other ISO Sources -->
+                        <TextBlock Text="Other ISO Sources" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <Button Content="Microsoft (Win11)" Command="{Binding OpenMicrosoftPageCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="Microsoft (Win10)" Command="{Binding OpenMicrosoft10PageCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="Adguard TechBench" Command="{Binding OpenAdguardTechBenchCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="Adguard UUP" Command="{Binding OpenAdguardUupCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="UUP dump" Command="{Binding OpenUupDumpCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="Heidoc" Command="{Binding OpenHeidocCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="OS.click" Command="{Binding OpenOsClickCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="Bob Pony" Command="{Binding OpenBobPonyCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="GetMyOS" Command="{Binding OpenGetMyOsCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="Rufus (USB)" Command="{Binding OpenRufusCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                        <Button Content="massgrave" Command="{Binding OpenMassgraveCommand}" 
+                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5"/>
                     </StackPanel>
                 </Grid>
 

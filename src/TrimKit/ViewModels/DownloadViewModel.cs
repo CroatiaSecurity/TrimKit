@@ -267,14 +267,45 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenMicrosoftPage()
+    private void OpenMicrosoftPage() => OpenUrl("https://www.microsoft.com/software-download/windows11");
+
+    [RelayCommand]
+    private void OpenMicrosoft10Page() => OpenUrl("https://www.microsoft.com/software-download/windows10");
+
+    [RelayCommand]
+    private void OpenAdguardTechBench() => OpenUrl("https://tb.rg-adguard.net/public.php");
+
+    [RelayCommand]
+    private void OpenAdguardUup() => OpenUrl("https://uup.rg-adguard.net/");
+
+    [RelayCommand]
+    private void OpenUupDump() => OpenUrl("https://www.uupdump.net/");
+
+    [RelayCommand]
+    private void OpenHeidoc() => OpenUrl("https://www.heidoc.net/joomla/technology-science/microsoft/67-microsoft-windows-and-office-iso-download-tool");
+
+    [RelayCommand]
+    private void OpenOsClick() => OpenUrl("https://os.click/en");
+
+    [RelayCommand]
+    private void OpenBobPony() => OpenUrl("https://bobpony.com/downloads/");
+
+    [RelayCommand]
+    private void OpenGetMyOs() => OpenUrl("https://www.getmyos.com/");
+
+    [RelayCommand]
+    private void OpenRufus() => OpenUrl("https://rufus.ie/en/");
+
+    [RelayCommand]
+    private void OpenMassgrave() => OpenUrl("https://massgrave.dev/genuine-installation-media");
+
+    private static void OpenUrl(string url)
     {
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = "https://www.microsoft.com/software-download/windows11",
+            FileName = url,
             UseShellExecute = true
         });
-        StatusText = "Microsoft download page opened in browser";
     }
 
     [RelayCommand]
