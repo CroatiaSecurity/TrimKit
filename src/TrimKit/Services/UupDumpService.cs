@@ -256,7 +256,7 @@ public class UupDumpService : IUupDumpService
                 Title = build.Title ?? string.Empty,
                 Build = build.Build ?? string.Empty,
                 Architecture = build.Arch ?? string.Empty,
-                DateAdded = DateTimeOffset.FromUnixTimeSeconds(build.Created).LocalDateTime
+                DateAdded = DateTimeOffset.FromUnixTimeSeconds(build.CreatedTimestamp).LocalDateTime
             });
         }
 
@@ -300,9 +300,16 @@ public class UupDumpService : IUupDumpService
         [JsonPropertyName("arch")]
         public string? Arch { get; set; }
         [JsonPropertyName("created")]
-        public long Created { get; set; }
+        public JsonElement Created { get; set; }
         [JsonPropertyName("uuid")]
         public string? Uuid { get; set; }
+
+        public long CreatedTimestamp => Created.ValueKind switch
+        {
+            JsonValueKind.Number => Created.GetInt64(),
+            JsonValueKind.String => long.TryParse(Created.GetString(), out var v) ? v : 0,
+            _ => 0
+        };
     }
 
     private class UupLangsResponse
