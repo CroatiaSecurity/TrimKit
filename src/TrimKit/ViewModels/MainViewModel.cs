@@ -85,8 +85,12 @@ public partial class MainViewModel : ObservableObject
             var ext = System.IO.Path.GetExtension(dialog.FileName).ToLowerInvariant();
             if (ext == ".iso")
             {
-                // Extract WIM from ISO first
                 _ = ExtractFromIsoAsync(dialog.FileName);
+            }
+            else if (ext == ".esd")
+            {
+                // ESD needs conversion to WIM for editing
+                _ = ConvertEsdAndLoadAsync(dialog.FileName);
             }
             else
             {
@@ -96,7 +100,51 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private async Task ExtractFromIsoAsync(string isoPath)
+    private async Task ConvertEsdAndLoadAsync(string esdPath)
+    {
+        try
+        {
+            IsBusy = true;
+            StatusText = "Converting ESD (recovery format) to WIM for editing...";
+            _logService.Log(Models.LogLevel.Info, $"Converting: {Path.GetFileName(esdPath)}");
+
+            var wimPath = Path.ChangeExtension(esdPath, ".wim");
+            var progress = new Progress<(int percent, string status)>(p =>
+            {
+                ProgressValue = p.percent;
+                StatusText = p.status;
+            });
+
+            await _imageToolsService.ConvertEsdToWimAsync(esdPath, wimPath, progress);
+
+            if (File.Exists(wimPath))
+            {
+                WimFilePath = wimPath;
+                await LoadWimInfoAsync();
+                StatusText = "ESD converted — WIM ready for customization";
+            }
+            else
+            {
+                // Fall back to loading ESD directly
+                WimFilePath = esdPath;
+                await LoadWimInfoAsync();
+                StatusText = "Warning: conversion failed, loaded as read-only ESD";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"ESD conversion failed: {ex.Message}";
+            _logService.Log(Models.LogLevel.Error, ex.Message);
+            // Still try to load it
+            WimFilePath = esdPath;
+            _ = LoadWimInfoAsync();
+        }
+        finally
+        {
+            IsBusy = false;
+            ProgressValue = 0;
+        }
+    }    private async Task ExtractFromIsoAsync(string isoPath)
     {
         try
         {
@@ -121,19 +169,42 @@ public partial class MainViewModel : ObservableObject
             {
                 WimFilePath = wimPath;
                 await LoadWimInfoAsync();
+                StatusText = "ISO extraction complete — install.wim ready";
             }
             else
             {
-                // Maybe it stayed as ESD
+                // If still ESD (recovery format), convert to WIM
                 var esdPath = System.IO.Path.Combine(outputDir, "install.esd");
                 if (File.Exists(esdPath))
                 {
-                    WimFilePath = esdPath;
-                    await LoadWimInfoAsync();
+                    StatusText = "Converting install.esd (recovery format) to install.wim...";
+                    _logService.Log(Models.LogLevel.Info, "ESD is in recovery format — converting to WIM for editing...");
+
+                    wimPath = System.IO.Path.Combine(outputDir, "install.wim");
+                    await _imageToolsService.ConvertEsdToWimAsync(esdPath, wimPath, progress);
+
+                    if (File.Exists(wimPath))
+                    {
+                        File.Delete(esdPath); // Remove the ESD, keep only WIM
+                        WimFilePath = wimPath;
+                        await LoadWimInfoAsync();
+                        StatusText = "ESD converted to WIM — ready for customization";
+                    }
+                    else
+                    {
+                        // Conversion failed, use ESD directly (read-only)
+                        WimFilePath = esdPath;
+                        await LoadWimInfoAsync();
+                        StatusText = "Warning: ESD conversion failed. Image loaded read-only.";
+                        _logService.Log(Models.LogLevel.Warning, "ESD→WIM conversion failed. Editing may be limited.");
+                    }
+                }
+                else
+                {
+                    StatusText = "No install image found in ISO";
+                    _logService.Log(Models.LogLevel.Error, "No install.wim or install.esd found in the ISO");
                 }
             }
-
-            StatusText = "ISO extraction complete";
         }
         catch (Exception ex)
         {
@@ -170,8 +241,38 @@ public partial class MainViewModel : ObservableObject
         try
         {
             IsBusy = true;
-            StatusText = "Reading WIM file...";
+            StatusText = "Reading image file...";
 
+            // Detect if this is actually a recovery-compressed ESD (even if named .wim)
+            if (await IsRecoveryFormatAsync(WimFilePath))
+            {
+                StatusText = "Detected recovery/ESD compression — converting to standard WIM...";
+                _logService.Log(LogLevel.Info, $"{Path.GetFileName(WimFilePath)} is in recovery (LZMS) format. Converting...");
+
+                var convertedPath = Path.Combine(
+                    Path.GetDirectoryName(WimFilePath)!,
+                    Path.GetFileNameWithoutExtension(WimFilePath) + "_converted.wim");
+
+                var progress = new Progress<(int percent, string status)>(p =>
+                {
+                    ProgressValue = p.percent;
+                    StatusText = p.status;
+                });
+
+                await _imageToolsService.ConvertEsdToWimAsync(WimFilePath, convertedPath, progress);
+
+                if (File.Exists(convertedPath) && new FileInfo(convertedPath).Length > 1024)
+                {
+                    WimFilePath = convertedPath;
+                    _logService.Log(LogLevel.Success, "Converted to standard WIM format");
+                }
+                else
+                {
+                    _logService.Log(LogLevel.Warning, "Conversion produced empty file — loading original (may be read-only)");
+                }
+            }
+
+            StatusText = "Reading WIM file...";
             WimImages.Clear();
             var images = await _dismService.GetWimInfoAsync(WimFilePath);
             foreach (var img in images)
@@ -182,7 +283,7 @@ public partial class MainViewModel : ObservableObject
             if (WimImages.Count > 0)
                 SelectedImage = WimImages[0];
 
-            StatusText = $"Found {WimImages.Count} image(s)";
+            StatusText = $"Found {WimImages.Count} image(s) — ready to mount";
         }
         catch (Exception ex)
         {
@@ -192,7 +293,56 @@ public partial class MainViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+            ProgressValue = 0;
         }
+    }
+
+    /// <summary>
+    /// Checks if a WIM/ESD file uses recovery (LZMS) compression by parsing DISM output.
+    /// Files in recovery format cannot be mounted for editing — they must be converted first.
+    /// </summary>
+    private async Task<bool> IsRecoveryFormatAsync(string filePath)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "dism.exe",
+                Arguments = $"/Get-WimInfo /WimFile:\"{filePath}\" /Index:1",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = new System.Diagnostics.Process { StartInfo = psi };
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            // DISM reports compression as "Recovery" for LZMS-compressed ESDs
+            // Normal WIMs show "LZX" or "XPRESS" or "None"
+            if (output.Contains("Recovery", StringComparison.OrdinalIgnoreCase) &&
+                output.Contains("Compression", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Also check if DISM flat-out fails to read it (corrupted or wrong format)
+            if (process.ExitCode != 0)
+            {
+                // Might be encrypted ESD — check error
+                var error = await process.StandardError.ReadToEndAsync();
+                if (error.Contains("recovery", StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+        }
+        catch
+        {
+            // If we can't determine, assume it's fine
+        }
+
+        return false;
     }
 
     [RelayCommand]

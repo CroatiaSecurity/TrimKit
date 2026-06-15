@@ -1,12 +1,12 @@
 [Setup]
 AppName=TrimKit
-AppVersion=0.0.1
+AppVersion=0.0.2
 AppPublisher=Gorstak
 AppPublisherURL=https://github.com/Gorstak/TrimKit
 DefaultDirName={autopf}\TrimKit
 DefaultGroupName=TrimKit
 OutputDir=..\releases
-OutputBaseFilename=TrimKit-Setup-0.0.1
+OutputBaseFilename=TrimKit-Setup-0.0.2
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin
