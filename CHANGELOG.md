@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.0.4 — 2026-06-15
+
+### Added
+- **Autounattend Generator tab** — full interactive UI: locale, username/password, OOBE skip, TPM/SecureBoot/RAM bypass, Defender/UAC/hibernation disable, Compact OS, auto-logon
+- **Compatibility tab** — live checkbox lists for all 45+ SafetyGuard protection areas and 12 BootWimSafetyGuard protections (check = protected from removal)
+- **ISO build at end of Apply All** — Save As dialog asks where to output the final trimmed ISO, builds with oscdimg
+- **Microsoft Update Catalog integration** — Fetch Available Updates button scrapes catalog.update.microsoft.com filtered to mounted edition + build + architecture
+- **Update eligibility check** — verifies WinSxS integrity, servicing stack, CBS database before allowing updates (blocks if previously debloated)
+- **Services tab lazy loading** — scans on-demand when tab is selected (copies SYSTEM hive to temp to avoid DISM lock)
+- Framework package filter — Apps tab hides runtime dependencies (VCLibs, .NET Native, UI.Xaml, WindowsAppRuntime) that break other apps if removed
+
+### Fixed
+- **Services scan no longer hangs** — copies SYSTEM hive to temp before reg load (DISM holds lock on mounted hive)
+- **Services tab shows 0 results** — fixed by copying hive, proper reg QUERY parsing, and timeout handling
+- Apps tab was showing framework/runtime packages that don't exist as user-facing apps — now filtered
+- Apply All no longer just cleans up — it saves WIMs, reassembles ISO structure, and builds final ISO
+- Compatibility options and boot protections now loaded at startup and bound to UI
+
+### Changed
+- Apply All pipeline: debloat → unmount+commit → copy WIMs to sources → Save As dialog → build ISO → cleanup
+- Services load lazily (not during mount) to prevent blocking the UI
+- All placeholder tabs replaced with real interactive content
+
 ## 0.0.3 — 2026-06-15
 
 ### Added

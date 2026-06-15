@@ -20,100 +20,160 @@ public class WindowsServiceManager : IWindowsServiceManager
 
         if (!File.Exists(systemHive))
         {
-            _logService.Log(LogLevel.Warning, "SYSTEM hive not found");
+            _logService.Log(LogLevel.Warning, "SYSTEM hive not found — cannot enumerate services");
             return services;
         }
 
+        // DISM holds a lock on the hive while mounted — copy to a temp file first
+        var tempHive = Path.Combine(Path.GetTempPath(), $"TrimKit_SYSTEM_{Guid.NewGuid():N}");
         const string mountKey = "HKLM\\WW_SVC_ENUM";
+
         try
         {
-            await RunRegAsync($"LOAD \"{mountKey}\" \"{systemHive}\"");
+            _logService.Log(LogLevel.Info, "Copying SYSTEM hive to temp for service enumeration...");
+            File.Copy(systemHive, tempHive, overwrite: true);
 
-            // Enumerate services from ControlSet001\Services
-            var output = await RunRegAsync($"QUERY \"{mountKey}\\ControlSet001\\Services\" /s /v Start");
+            var loadResult = await RunRegWithTimeoutAsync($"LOAD \"{mountKey}\" \"{tempHive}\"", TimeSpan.FromSeconds(5));
+            if (loadResult.Contains("ERROR", StringComparison.OrdinalIgnoreCase))
+            {
+                _logService.Log(LogLevel.Warning, $"Could not load SYSTEM hive copy: {loadResult.Trim()}");
+                return services;
+            }
 
-            var currentService = "";
-            foreach (var line in output.Split('\n'))
+            // Get list of service subkeys (non-recursive)
+            var keysOutput = await RunRegWithTimeoutAsync(
+                $"QUERY \"{mountKey}\\ControlSet001\\Services\"",
+                TimeSpan.FromSeconds(10));
+
+            if (string.IsNullOrWhiteSpace(keysOutput))
+            {
+                _logService.Log(LogLevel.Warning, "No output from registry query");
+                return services;
+            }
+
+            // Parse subkey names — reg query returns full paths like:
+            // HKLM\WW_SVC_ENUM\ControlSet001\Services\ServiceName
+            var serviceNames = new List<string>();
+            var prefix = $"{mountKey}\\ControlSet001\\Services\\";
+
+            foreach (var line in keysOutput.Split('\n'))
             {
                 var trimmed = line.Trim();
-                if (trimmed.StartsWith("HKLM\\", StringComparison.OrdinalIgnoreCase) && trimmed.Contains("\\Services\\"))
+                if (string.IsNullOrEmpty(trimmed)) continue;
+
+                if (trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    var parts = trimmed.Split("\\Services\\");
-                    if (parts.Length >= 2)
-                    {
-                        var svcPath = parts[1].Trim();
-                        // Only top-level service keys (no sub-keys)
-                        if (!svcPath.Contains('\\'))
-                            currentService = svcPath;
-                        else
-                            currentService = "";
-                    }
+                    var name = trimmed[prefix.Length..].Trim();
+                    if (!string.IsNullOrEmpty(name) && !name.Contains('\\'))
+                        serviceNames.Add(name);
                 }
-                else if (!string.IsNullOrEmpty(currentService) && trimmed.Contains("Start") && trimmed.Contains("REG_DWORD"))
+            }
+
+            _logService.Log(LogLevel.Info, $"Found {serviceNames.Count} service keys, reading Start values...");
+
+            // Read Start value for each service
+            foreach (var svcName in serviceNames)
+            {
+                try
                 {
-                    var valuePart = trimmed.Split("REG_DWORD").LastOrDefault()?.Trim();
-                    if (valuePart != null && valuePart.StartsWith("0x"))
+                    var output = await RunRegWithTimeoutAsync(
+                        $"QUERY \"{mountKey}\\ControlSet001\\Services\\{svcName}\" /v Start",
+                        TimeSpan.FromSeconds(2));
+
+                    if (string.IsNullOrWhiteSpace(output)) continue;
+
+                    foreach (var line in output.Split('\n'))
                     {
-                        var startValue = Convert.ToInt32(valuePart, 16);
-                        if (startValue >= 0 && startValue <= 4)
+                        var trimmed = line.Trim();
+                        if (trimmed.Contains("Start", StringComparison.OrdinalIgnoreCase) &&
+                            trimmed.Contains("REG_DWORD", StringComparison.OrdinalIgnoreCase))
                         {
-                            services.Add(new WindowsServiceInfo
+                            var dwordIdx = trimmed.IndexOf("REG_DWORD", StringComparison.OrdinalIgnoreCase);
+                            var valuePart = trimmed[(dwordIdx + "REG_DWORD".Length)..].Trim();
+                            if (valuePart.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                             {
-                                ServiceName = currentService,
-                                DisplayName = currentService,
-                                StartType = (ServiceStartType)startValue,
-                                OriginalStartType = (ServiceStartType)startValue
-                            });
+                                var startValue = Convert.ToInt32(valuePart, 16);
+                                if (startValue >= 0 && startValue <= 4)
+                                {
+                                    services.Add(new WindowsServiceInfo
+                                    {
+                                        ServiceName = svcName,
+                                        DisplayName = svcName,
+                                        StartType = (ServiceStartType)startValue,
+                                        OriginalStartType = (ServiceStartType)startValue
+                                    });
+                                }
+                            }
+                            break;
                         }
                     }
-                    currentService = "";
+                }
+                catch
+                {
+                    // Skip services we can't read (no Start value, protected, etc.)
                 }
             }
         }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Service scan error: {ex.Message}");
+        }
         finally
         {
+            await Task.Delay(300);
+            try { await RunRegAsync($"UNLOAD \"{mountKey}\""); } catch { }
             await Task.Delay(200);
-            await RunRegAsync($"UNLOAD \"{mountKey}\"");
+            try { File.Delete(tempHive); } catch { }
         }
 
-        _logService.Log(LogLevel.Info, $"Found {services.Count} services");
+        _logService.Log(LogLevel.Info, $"Enumerated {services.Count} services");
         return services.OrderBy(s => s.ServiceName).ToList();
     }
 
     public async Task SetServiceStartTypeAsync(string mountPath, string serviceName, ServiceStartType startType)
     {
         var systemHive = Path.Combine(mountPath, @"Windows\System32\config\SYSTEM");
+        var tempHive = Path.Combine(Path.GetTempPath(), $"TrimKit_SVCMOD_{Guid.NewGuid():N}");
         const string mountKey = "HKLM\\WW_SVC_MOD";
 
         try
         {
-            await RunRegAsync($"LOAD \"{mountKey}\" \"{systemHive}\"");
-            var hexValue = $"0x{(int)startType:X8}";
+            File.Copy(systemHive, tempHive, overwrite: true);
+            await RunRegAsync($"LOAD \"{mountKey}\" \"{tempHive}\"");
             await RunRegAsync($"ADD \"{mountKey}\\ControlSet001\\Services\\{serviceName}\" /v Start /t REG_DWORD /d {(int)startType} /f");
             _logService.Log(LogLevel.Success, $"Set {serviceName} → {startType}");
         }
         finally
         {
             await Task.Delay(200);
-            await RunRegAsync($"UNLOAD \"{mountKey}\"");
+            try { await RunRegAsync($"UNLOAD \"{mountKey}\""); } catch { }
+            await Task.Delay(200);
+            // Copy modified hive back
+            try { File.Copy(tempHive, systemHive, overwrite: true); } catch { }
+            try { File.Delete(tempHive); } catch { }
         }
     }
 
     public async Task RemoveServiceAsync(string mountPath, string serviceName)
     {
         var systemHive = Path.Combine(mountPath, @"Windows\System32\config\SYSTEM");
+        var tempHive = Path.Combine(Path.GetTempPath(), $"TrimKit_SVCDEL_{Guid.NewGuid():N}");
         const string mountKey = "HKLM\\WW_SVC_DEL";
 
         try
         {
-            await RunRegAsync($"LOAD \"{mountKey}\" \"{systemHive}\"");
+            File.Copy(systemHive, tempHive, overwrite: true);
+            await RunRegAsync($"LOAD \"{mountKey}\" \"{tempHive}\"");
             await RunRegAsync($"DELETE \"{mountKey}\\ControlSet001\\Services\\{serviceName}\" /f");
             _logService.Log(LogLevel.Success, $"Removed service: {serviceName}");
         }
         finally
         {
             await Task.Delay(200);
-            await RunRegAsync($"UNLOAD \"{mountKey}\"");
+            try { await RunRegAsync($"UNLOAD \"{mountKey}\""); } catch { }
+            await Task.Delay(200);
+            try { File.Copy(tempHive, systemHive, overwrite: true); } catch { }
+            try { File.Delete(tempHive); } catch { }
         }
     }
 
@@ -131,8 +191,50 @@ public class WindowsServiceManager : IWindowsServiceManager
 
         using var process = new Process { StartInfo = psi };
         process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
+
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+
+        await Task.WhenAll(outputTask, errorTask);
         await process.WaitForExitAsync();
-        return output;
+
+        var output = await outputTask;
+        var error = await errorTask;
+
+        return !string.IsNullOrWhiteSpace(output) ? output : error;
+    }
+
+    private static async Task<string> RunRegWithTimeoutAsync(string arguments, TimeSpan timeout)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "reg.exe",
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new Process { StartInfo = psi };
+        process.Start();
+
+        using var cts = new CancellationTokenSource(timeout);
+        try
+        {
+            var outputTask = process.StandardOutput.ReadToEndAsync(cts.Token);
+            var errorTask = process.StandardError.ReadToEndAsync(cts.Token);
+
+            await Task.WhenAll(outputTask, errorTask);
+            await process.WaitForExitAsync(cts.Token);
+
+            var output = await outputTask;
+            return !string.IsNullOrWhiteSpace(output) ? output : await errorTask;
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(); } catch { }
+            return string.Empty;
+        }
     }
 }

@@ -159,7 +159,7 @@
                         <TextBlock Text="&#x1F9D9;" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBlock Text="TrimKit" FontSize="16" FontWeight="Bold" Foreground="#8AB4F8"/>
                     </StackPanel>
-                    <TextBlock Text="v0.0.3" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
+                    <TextBlock Text="v0.0.4" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
                 </StackPanel>
 
                 <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0"
@@ -272,13 +272,43 @@
                 </Grid>
 
                 <!-- Tab 1: Updates -->
-                <StackPanel Style="{StaticResource PlaceholderPanel}"
-                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=1}">
-                    <TextBlock Text="&#x1F4E6;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                    <TextBlock Text="Windows Updates" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Text="Update integration runs automatically via presets or Apply All.&#x0a;Add .msu/.cab files to the work folder to queue them."/>
-                </StackPanel>
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=1}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="Available Updates from Microsoft Update Catalog" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Fetches updates matching your mounted edition and build. Check updates to integrate via Apply All." 
+                                   Foreground="#80868E" FontSize="11.5"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Fetch Available Updates" Command="{Binding FetchUpdatesCommand}" 
+                                Style="{StaticResource AccentButton}" IsEnabled="{Binding IsMounted}"/>
+                        <TextBlock Text="Requires internet • Filters to mounted build + architecture" 
+                                   Foreground="#5F6368" FontSize="10.5" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </StackPanel>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding AvailableUpdates}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" Foreground="#E8EAED" TextWrapping="Wrap"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                            <TextBlock Text="{Binding Size}" Foreground="#81C995" FontSize="11"/>
+                                            <TextBlock Text="{Binding Classification}" Foreground="#5F6368" FontSize="11" Margin="12,0,0,0"/>
+                                            <TextBlock Text="{Binding LastUpdated}" Foreground="#5F6368" FontSize="11" Margin="12,0,0,0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Grid.Row="3" Foreground="#5F6368" FontSize="10.5" Margin="0,6,0,0"
+                               Text="Selected updates will be downloaded and integrated during Apply All. Requires intact servicing stack in the image."/>
+                </Grid>
 
                 <!-- Tab 2: Apps -->
                 <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=2}">
@@ -420,10 +450,17 @@
                 <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=8}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Services — check to disable (uncheck to leave as-is)" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                    <ListBox Grid.Row="1" ItemsSource="{Binding Services}" Background="#1C1C1F" BorderBrush="#303336">
+                    <TextBlock Grid.Row="0" Text="Services — check to disable" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Load Services" Command="{Binding LoadServicesCommand}" 
+                                Style="{StaticResource ChromeButton}" IsEnabled="{Binding IsMounted}"/>
+                        <TextBlock Text="Scans offline registry (may take a few seconds)" 
+                                   Foreground="#5F6368" FontSize="10.5" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </StackPanel>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding Services}" Background="#1C1C1F" BorderBrush="#303336">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
@@ -481,48 +518,153 @@
                 </Grid>
 
                 <!-- Tab 11: Customize -->
-                <StackPanel Style="{StaticResource PlaceholderPanel}"
-                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=11}">
-                    <TextBlock Text="&#x1F3A8;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                    <TextBlock Text="Customize" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Visibility="{Binding IsMounted, Converter={StaticResource BoolToVis}}"
-                               Text="Image mounted. Customization (wallpapers, branding, scripts) available via presets."/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Visibility="{Binding IsMounted, Converter={StaticResource InverseBoolToVis}}"
-                               Text="Wallpapers, branding, cursors, themes, scripts.&#x0a;Browse an ISO and mount an edition first."/>
-                </StackPanel>
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=11}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Customize — wallpapers, branding, scripts" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <StackPanel Grid.Row="1" MaxWidth="600" HorizontalAlignment="Left">
+                        <TextBlock Text="Wallpapers" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="Set desktop, lock screen, or setup wallpapers via Load Preset or Apply All with a .wwp preset that includes customization paths." 
+                                   Foreground="#80868E" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="OEM Branding" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="Manufacturer, model, support URL, and logo can be set via presets. These appear in System &gt; About after install." 
+                                   Foreground="#80868E" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Post-Install Scripts" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="SetupComplete.cmd and FirstLogon scripts can be injected via presets. These run automatically after Windows installs." 
+                                   Foreground="#80868E" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Cleanup" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="DISM image cleanup and Compact OS run automatically at the end of Apply All to shrink the final WIM." 
+                                   Foreground="#80868E" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="All customization options are applied during the Apply All phase.&#x0a;Create or load a .wwp preset to configure these settings." 
+                                   Foreground="#5F6368" FontSize="11" TextWrapping="Wrap" FontStyle="Italic"/>
+                    </StackPanel>
+                </Grid>
 
                 <!-- Tab 12: Unattend -->
-                <StackPanel Style="{StaticResource PlaceholderPanel}"
-                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=12}">
-                    <TextBlock Text="&#x1F4DD;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                    <TextBlock Text="Autounattend" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Text="Generate autounattend.xml for unattended install.&#x0a;Skip OOBE, bypass TPM, create local accounts."/>
-                </StackPanel>
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=12}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Autounattend Generator" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="550" HorizontalAlignment="Left" DataContext="{Binding UnattendConfig}">
+                            <!-- Locale -->
+                            <TextBlock Text="Locale" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="Language:" Foreground="#B4B8BE" Width="120" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding Language, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="Input Locale:" Foreground="#B4B8BE" Width="120" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding InputLocale, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="Time Zone:" Foreground="#B4B8BE" Width="120" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding TimeZone, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="Computer Name:" Foreground="#B4B8BE" Width="120" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding ComputerName, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                            </StackPanel>
+
+                            <!-- User -->
+                            <TextBlock Text="User Account" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="Username:" Foreground="#B4B8BE" Width="120" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="Password:" Foreground="#B4B8BE" Width="120" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" Width="180"/>
+                            </StackPanel>
+                            <CheckBox Content="Auto-logon after install" IsChecked="{Binding AutoLogon}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Enable built-in Administrator account" IsChecked="{Binding EnableAdminAccount}" Foreground="#E8EAED" Margin="0,4,0,12"/>
+
+                            <!-- OOBE -->
+                            <TextBlock Text="OOBE (Out-of-Box Experience)" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <CheckBox Content="Skip OOBE entirely (no MS account, no privacy questions)" IsChecked="{Binding SkipOobe}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Hide EULA page" IsChecked="{Binding HideEula}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Hide wireless setup" IsChecked="{Binding HideWirelessSetup}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Disable telemetry" IsChecked="{Binding DisableTelemetry}" Foreground="#E8EAED" Margin="0,4,0,12"/>
+
+                            <!-- Win11 Bypass -->
+                            <TextBlock Text="Windows 11 Bypass" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <CheckBox Content="Bypass TPM 2.0 check" IsChecked="{Binding BypassTpmCheck}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Bypass Secure Boot check" IsChecked="{Binding BypassSecureBootCheck}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Bypass RAM check" IsChecked="{Binding BypassRamCheck}" Foreground="#E8EAED" Margin="0,4,0,12"/>
+
+                            <!-- System -->
+                            <TextBlock Text="System" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                            <CheckBox Content="Disable Windows Defender" IsChecked="{Binding DisableDefender}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Disable UAC" IsChecked="{Binding DisableUac}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Disable hibernation" IsChecked="{Binding DisableHibernation}" Foreground="#E8EAED" Margin="0,4"/>
+                            <CheckBox Content="Compact OS (smaller install footprint)" IsChecked="{Binding CompactOs}" Foreground="#E8EAED" Margin="0,4,0,12"/>
+
+                            <TextBlock Text="Settings are injected into the image during Apply All." 
+                                       Foreground="#5F6368" FontSize="11" FontStyle="Italic" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
 
                 <!-- Tab 13: Compatibility -->
-                <StackPanel Style="{StaticResource PlaceholderPanel}"
-                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=13}">
-                    <TextBlock Text="&#x1F6E1;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                    <TextBlock Text="Compatibility" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Text="Configure SafetyGuard protections.&#x0a;Check/uncheck functional areas to protect from removal.&#x0a;&#x0a;• install.wim → SafetyGuard (45+ protection areas)&#x0a;• boot.wim → BootWimSafetyGuard (stricter, boot-critical)&#x0a;• ISO files → IsoFileSafetyGuard (bootloader, EFI protected)"/>
-                </StackPanel>
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=13}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Safety — check areas to PROTECT from removal" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="1" Text="Checked = protected (won't be removed). Unchecked = can be removed by Apply All." 
+                               Foreground="#80868E" FontSize="11.5" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding CompatibilityOptions}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsEnabled}" Foreground="#E8EAED" Margin="4,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0" FontSize="11"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Grid.Row="3" Text="Boot.wim protections:" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                    <ListBox Grid.Row="4" ItemsSource="{Binding BootCompatibilityOptions}" Background="#1C1C1F" BorderBrush="#303336" MaxHeight="150">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsEnabled}" Foreground="#E8EAED" Margin="4,2">
+                                    <TextBlock Text="{Binding Name}" Foreground="#E8EAED"/>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
 
                 <!-- Tab 14: Apply -->
-                <StackPanel Style="{StaticResource PlaceholderPanel}"
-                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=14}">
-                    <TextBlock Text="&#x25B6;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                    <TextBlock Text="Apply Changes" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Visibility="{Binding IsMounted, Converter={StaticResource BoolToVis}}"
-                               Text="Ready to apply. Click Apply All in the bottom bar to process all changes&#x0a;to both install.wim and boot.wim with safety guards active."/>
-                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
-                               Visibility="{Binding IsMounted, Converter={StaticResource InverseBoolToVis}}"
-                               Text="Review and apply all pending changes.&#x0a;Browse an ISO and mount an edition first."/>
-                </StackPanel>
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=14}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Apply All — execution pipeline" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <StackPanel Grid.Row="1" MaxWidth="650" HorizontalAlignment="Left">
+                        <TextBlock Text="Click Apply All in the bottom bar to run the full pipeline:" 
+                                   Foreground="#B4B8BE" FontSize="12" Margin="0,0,0,12"/>
+                        <TextBlock Foreground="#80868E" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="1. Remove selected DISM packages&#x0a;2. Enable/disable features&#x0a;3. Apply registry tweaks&#x0a;4. Inject drivers&#x0a;5. Remove selected components (apps, capabilities, fonts, keyboards, languages, inbox drivers)&#x0a;6. Configure services&#x0a;7. WinSxS component store cleanup&#x0a;8. DISM image cleanup (shrink WIM)&#x0a;9. Repeat for boot.wim (with stricter BootWimSafetyGuard)&#x0a;10. Unmount and save both images&#x0a;11. Delete temp work folder"/>
+                        <TextBlock Text="After Apply All completes, all resources are cleaned up automatically." 
+                                   Foreground="#5F6368" FontSize="11" Margin="0,16,0,0" FontStyle="Italic"/>
+                    </StackPanel>
+                </Grid>
 
                 <!-- Tab 15: Log -->
                 <Grid Margin="16"

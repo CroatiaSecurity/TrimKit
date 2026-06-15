@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ICustomizationService _customizationService;
     private readonly IComponentRemovalService _componentRemovalService;
     private readonly IWinSxsCleanupService _winSxsCleanupService;
+    private readonly IUpdateCatalogService _updateCatalogService;
 
     [ObservableProperty] private string _wimFilePath = string.Empty;
     [ObservableProperty] private string _mountPath = string.Empty;
@@ -30,6 +31,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private WimImageInfo? _selectedImage;
     [ObservableProperty] private string _selectedTab = "Packages";
     [ObservableProperty] private int _selectedTabIndex;
+
+    partial void OnSelectedTabIndexChanged(int value)
+    {
+        // Lazy-load services when user navigates to Services tab (index 8)
+        if (value == 8 && IsMounted && Services.Count == 0)
+        {
+            _ = LoadServicesAsync();
+        }
+    }
 
     // New workflow state
     [ObservableProperty] private string _workFolder = string.Empty;
@@ -56,6 +66,14 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<RemovableComponent> Languages { get; } = [];
     public ObservableCollection<RemovableComponent> InboxDrivers { get; } = [];
     public ObservableCollection<WindowsServiceInfo> Services { get; } = [];
+    public ObservableCollection<CatalogUpdate> AvailableUpdates { get; } = [];
+
+    // Autounattend generator config (bound to UI controls)
+    public UnattendConfig UnattendConfig { get; } = new();
+
+    // Safety/Compatibility options (bound to checkboxes)
+    public ObservableCollection<CompatibilityOption> CompatibilityOptions { get; } = [];
+    public ObservableCollection<BootCompatibilityOption> BootCompatibilityOptions { get; } = [];
 
     public DownloadViewModel DownloadViewModel { get; }
 
@@ -65,7 +83,8 @@ public partial class MainViewModel : ObservableObject
         IImageToolsService imageToolsService, IUnattendService unattendService,
         ICustomizationService customizationService,
         IComponentRemovalService componentRemovalService,
-        IWinSxsCleanupService winSxsCleanupService)
+        IWinSxsCleanupService winSxsCleanupService,
+        IUpdateCatalogService updateCatalogService)
     {
         _dismService = dismService;
         _registryService = registryService;
@@ -78,6 +97,7 @@ public partial class MainViewModel : ObservableObject
         _customizationService = customizationService;
         _componentRemovalService = componentRemovalService;
         _winSxsCleanupService = winSxsCleanupService;
+        _updateCatalogService = updateCatalogService;
         DownloadViewModel = downloadViewModel;
 
         _logService.LogAdded += OnLogAdded;
@@ -87,6 +107,12 @@ public partial class MainViewModel : ObservableObject
         {
             RegistryTweaks.Add(tweak);
         }
+
+        // Load compatibility protection options
+        foreach (var opt in SafetyGuard.GetDefaultCompatibilityOptions())
+            CompatibilityOptions.Add(opt);
+        foreach (var opt in BootWimSafetyGuard.GetDefaultBootCompatibilityOptions())
+            BootCompatibilityOptions.Add(opt);
 
         // Default mount path
         MountPath = @"C:\TrimKitMount";
@@ -517,14 +543,17 @@ public partial class MainViewModel : ObservableObject
         Languages.Clear();
         InboxDrivers.Clear();
         Services.Clear();
+        AvailableUpdates.Clear();
 
         var mountTarget = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
 
         // DISM packages and features
+        StatusText = "Scanning packages...";
         var packages = await _dismService.GetPackagesAsync(mountTarget);
         foreach (var pkg in packages)
             Packages.Add(pkg);
 
+        StatusText = "Scanning features...";
         var features = await _dismService.GetFeaturesAsync(mountTarget);
         foreach (var feat in features)
             Features.Add(feat);
@@ -534,7 +563,12 @@ public partial class MainViewModel : ObservableObject
         {
             StatusText = "Scanning provisioned apps...";
             var apps = await _componentRemovalService.GetProvisionedAppsAsync(mountTarget);
-            foreach (var app in apps) ProvisionedApps.Add(app);
+            // Filter out framework/runtime packages — only show actual user-facing apps
+            foreach (var app in apps)
+            {
+                if (!IsFrameworkPackage(app.Id))
+                    ProvisionedApps.Add(app);
+            }
 
             StatusText = "Scanning capabilities...";
             var caps = await _componentRemovalService.GetCapabilitiesAsync(mountTarget);
@@ -561,21 +595,70 @@ public partial class MainViewModel : ObservableObject
             _logService.Log(LogLevel.Warning, $"Component scan partial failure: {ex.Message}");
         }
 
-        // Service manager
-        try
-        {
-            StatusText = "Scanning services...";
-            var services = await _serviceManager.GetServicesAsync(mountTarget);
-            foreach (var svc in services) Services.Add(svc);
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Service scan failed: {ex.Message}");
-        }
+        // Services: skip during mount — load lazily when user navigates to Services tab
+        // (reg QUERY on offline hive with thousands of keys is too slow for startup)
+        _logService.Log(LogLevel.Info, "Services will be scanned on-demand when Services tab is selected.");
 
         _logService.Log(LogLevel.Info,
             $"Loaded: {Packages.Count} packages, {Features.Count} features, {ProvisionedApps.Count} apps, " +
-            $"{Capabilities.Count} capabilities, {Fonts.Count} fonts, {Services.Count} services");
+            $"{Capabilities.Count} capabilities, {Fonts.Count} fonts, {InboxDrivers.Count} inbox drivers");
+    }
+
+    /// <summary>
+    /// Returns true if a package name is a framework/runtime dependency (not a user-facing app).
+    /// These should not be shown to the user for removal as they break other apps.
+    /// </summary>
+    private static bool IsFrameworkPackage(string packageName)
+    {
+        var lower = packageName.ToLowerInvariant();
+        // Only filter actual runtime/framework dependencies — NOT codec extensions or real apps
+        return lower.Contains("microsoft.net.native.framework") ||
+               lower.Contains("microsoft.net.native.runtime") ||
+               lower.Contains("microsoft.vclibs") ||
+               lower.Contains("microsoft.ui.xaml") ||
+               lower.Contains("microsoft.services.store.engagement") ||
+               lower.Contains("microsoft.advertising.xaml") ||
+               lower.Contains("microsoft.directxruntime") ||
+               lower.Contains("microsoft.windowsappruntime") ||
+               lower.Contains("microsoft.winjs");
+    }
+
+    /// <summary>
+    /// Loads services on-demand (called when user navigates to Services tab).
+    /// </summary>
+    [RelayCommand]
+    private async Task LoadServicesAsync()
+    {
+        if (IsBusy || !IsMounted || Services.Count > 0) return;
+
+        try
+        {
+            IsBusy = true;
+            StatusText = "Scanning services...";
+            var mountTarget = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+
+            var svcTask = Task.Run(async () => await _serviceManager.GetServicesAsync(mountTarget));
+            try
+            {
+                var services = await svcTask.WaitAsync(TimeSpan.FromSeconds(15));
+                foreach (var svc in services) Services.Add(svc);
+                StatusText = $"Found {Services.Count} services";
+            }
+            catch (TimeoutException)
+            {
+                StatusText = "Service scan timed out — registry query too slow for this image";
+                _logService.Log(LogLevel.Warning, "Service scan timed out (15s). Image may have too many registry keys.");
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Service scan failed: {ex.Message}";
+            _logService.Log(LogLevel.Warning, $"Service scan failed: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
@@ -886,11 +969,108 @@ public partial class MainViewModel : ObservableObject
                 _logService.Log(LogLevel.Success, "boot.wim changes applied (with BootWimSafetyGuard)");
             }
 
-            StatusText = "All changes applied — starting cleanup...";
+            StatusText = "All changes applied — saving images...";
             _logService.Log(LogLevel.Success, "All changes applied to both images");
 
-            // Graceful cleanup: unmount everything and delete temp work folder
-            await GracefulCleanupAsync(commitChanges: true);
+            // Unmount both WIMs with commit (save changes into the WIM files)
+            if (IsBootMounted && !string.IsNullOrEmpty(BootMountPath))
+            {
+                StatusText = "Saving boot.wim...";
+                await _dismService.UnmountImageAsync(BootMountPath, true);
+                IsBootMounted = false;
+                _logService.Log(LogLevel.Success, "boot.wim saved");
+            }
+
+            var installMount = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+            if (IsMounted && !string.IsNullOrEmpty(installMount))
+            {
+                StatusText = "Saving install.wim...";
+                await _dismService.UnmountImageAsync(installMount, true);
+                IsInstallMounted = false;
+                IsMounted = false;
+                _logService.Log(LogLevel.Success, "install.wim saved");
+            }
+
+            // Put the modified WIMs back into the work folder's sources directory
+            if (!string.IsNullOrEmpty(WorkFolder) && Directory.Exists(WorkFolder))
+            {
+                var sourcesDir = Path.Combine(WorkFolder, "sources");
+                Directory.CreateDirectory(sourcesDir);
+
+                // Copy modified install.wim back to sources
+                if (!string.IsNullOrEmpty(InstallWimPath) && File.Exists(InstallWimPath))
+                {
+                    var destInstall = Path.Combine(sourcesDir, "install.wim");
+                    StatusText = "Copying modified install.wim to ISO structure...";
+                    File.Copy(InstallWimPath, destInstall, overwrite: true);
+                }
+
+                // Copy modified boot.wim back to sources
+                if (!string.IsNullOrEmpty(BootWimPath) && File.Exists(BootWimPath))
+                {
+                    var destBoot = Path.Combine(sourcesDir, "boot.wim");
+                    StatusText = "Copying modified boot.wim to ISO structure...";
+                    File.Copy(BootWimPath, destBoot, overwrite: true);
+                }
+
+                // Ask user where to save the final ISO
+                var saveDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Save debloated ISO as",
+                    Filter = "ISO Image (*.iso)|*.iso",
+                    FileName = !string.IsNullOrEmpty(IsoFilePath)
+                        ? Path.GetFileNameWithoutExtension(IsoFilePath) + "_trimmed.iso"
+                        : "Windows_Trimmed.iso"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    StatusText = "Building ISO...";
+                    var isoProgress = new Progress<(int percent, string status)>(p =>
+                    {
+                        ProgressValue = p.percent;
+                        StatusText = p.status;
+                    });
+
+                    var volumeLabel = "WIN_TRIMKIT";
+                    await _imageToolsService.BuildIsoAsync(WorkFolder, saveDialog.FileName, volumeLabel, isoProgress);
+
+                    StatusText = $"ISO saved: {saveDialog.FileName}";
+                    _logService.Log(LogLevel.Success, $"Final ISO created: {saveDialog.FileName}");
+                }
+                else
+                {
+                    StatusText = "ISO build skipped — work folder preserved";
+                    _logService.Log(LogLevel.Info, $"User skipped ISO build. Modified files remain in: {WorkFolder}");
+                    // Don't delete work folder if user skipped — they might want the files
+                    return;
+                }
+            }
+
+            // Cleanup temp work folder
+            if (!string.IsNullOrEmpty(WorkFolder) && Directory.Exists(WorkFolder))
+            {
+                try
+                {
+                    Directory.Delete(WorkFolder, true);
+                    _logService.Log(LogLevel.Info, "Work folder cleaned up");
+                    WorkFolder = string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Could not delete work folder: {ex.Message}");
+                }
+            }
+
+            // Unmount ISO if still mounted
+            if (!string.IsNullOrEmpty(IsoFilePath))
+            {
+                try { await _isoService.UnmountIsoAsync(IsoFilePath); } catch { }
+            }
+
+            Packages.Clear();
+            Features.Clear();
+            StatusText = "Done — ISO built and cleanup complete";
         }
         catch (Exception ex)
         {
@@ -1156,6 +1336,151 @@ public partial class MainViewModel : ObservableObject
     {
         LogEntries.Clear();
         _logService.Clear();
+    }
+
+    /// <summary>
+    /// Fetches available updates from Microsoft Update Catalog filtered to the mounted edition/build.
+    /// </summary>
+    [RelayCommand]
+    private async Task FetchUpdatesAsync()
+    {
+        if (IsBusy || !IsMounted || SelectedImage == null) return;
+
+        try
+        {
+            IsBusy = true;
+            AvailableUpdates.Clear();
+            StatusText = "Checking update eligibility...";
+
+            var mountTarget = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+
+            // Check if the component store and servicing stack are intact
+            // (updates will fail without these)
+            if (!CanApplyUpdates(mountTarget))
+            {
+                StatusText = "Updates unavailable — component store or servicing stack missing from image";
+                _logService.Log(LogLevel.Warning,
+                    "Cannot fetch updates: CBS (Component Based Servicing) or servicing stack is missing. " +
+                    "Updates require an intact servicing stack to install. " +
+                    "If you removed Windows Update or servicing components, update integration is not possible.");
+                return;
+            }
+
+            // Build search query from the mounted image's version and architecture
+            var version = SelectedImage.Version; // e.g. "10.0.26100.1"
+            var arch = SelectedImage.Architecture; // e.g. "x64"
+            var buildNumber = "";
+
+            // Extract major build from version string (10.0.XXXXX.Y → XXXXX)
+            var versionParts = version.Split('.');
+            if (versionParts.Length >= 3)
+                buildNumber = versionParts[2]; // e.g. "26100"
+
+            var query = _updateCatalogService.BuildSearchQuery(SelectedImage.Name, arch, buildNumber);
+
+            StatusText = $"Searching Microsoft Update Catalog: {query}";
+            _logService.Log(LogLevel.Info, $"Fetching updates for: {SelectedImage.Name} ({arch}, build {buildNumber})");
+
+            var updates = await _updateCatalogService.SearchUpdatesAsync(query);
+
+            // Filter to x64/x86 matching the image architecture
+            var filtered = updates.Where(u =>
+                u.Title.Contains(arch, StringComparison.OrdinalIgnoreCase) ||
+                (!u.Title.Contains("x86", StringComparison.OrdinalIgnoreCase) &&
+                 !u.Title.Contains("x64", StringComparison.OrdinalIgnoreCase) &&
+                 !u.Title.Contains("ARM64", StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+
+            foreach (var update in filtered)
+                AvailableUpdates.Add(update);
+
+            StatusText = filtered.Count > 0
+                ? $"Found {filtered.Count} update(s) for {SelectedImage.Name} (build {buildNumber})"
+                : "No updates found — try a different search or check your internet connection";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Update fetch failed: {ex.Message}";
+            _logService.Log(LogLevel.Error, $"Update catalog fetch failed: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+            ProgressValue = 0;
+        }
+    }
+
+    /// <summary>
+    /// Checks if the mounted image has an intact component store and servicing stack
+    /// required for update integration. Without these, DISM /Add-Package will fail.
+    /// </summary>
+    private bool CanApplyUpdates(string mountPath)
+    {
+        // CBS (Component Based Servicing) store
+        var cbsDir = Path.Combine(mountPath, @"Windows\Servicing");
+        var winsxsDir = Path.Combine(mountPath, @"Windows\WinSxS");
+        var trustedInstaller = Path.Combine(mountPath, @"Windows\Servicing\TrustedInstaller.exe");
+
+        // 1. WinSxS directory must exist (component store)
+        if (!Directory.Exists(winsxsDir))
+        {
+            _logService.Log(LogLevel.Error, "WinSxS directory missing — component store removed. Updates cannot be applied.");
+            return false;
+        }
+
+        // 2. Servicing directory must exist
+        if (!Directory.Exists(cbsDir))
+        {
+            _logService.Log(LogLevel.Error, "Windows\\Servicing directory missing. Updates cannot be applied.");
+            return false;
+        }
+
+        // 3. WinSxS must have manifest files (sign of intact store)
+        var manifestsDir = Path.Combine(winsxsDir, "Manifests");
+        var hasManifests = false;
+
+        if (Directory.Exists(manifestsDir))
+            hasManifests = Directory.EnumerateFiles(manifestsDir, "*.manifest").Any();
+
+        if (!hasManifests)
+            hasManifests = Directory.EnumerateFiles(winsxsDir, "*.manifest", SearchOption.TopDirectoryOnly).Any();
+
+        if (!hasManifests)
+        {
+            _logService.Log(LogLevel.Error, "WinSxS has no manifests — component store has been gutted (likely by a prior debloat tool). Updates cannot be applied.");
+            return false;
+        }
+
+        // 4. Check WinSxS hasn't been heavily stripped (< 1000 directories is suspicious for Win10/11)
+        var sxsDirCount = Directory.GetDirectories(winsxsDir, "*", SearchOption.TopDirectoryOnly).Length;
+        if (sxsDirCount < 500)
+        {
+            _logService.Log(LogLevel.Warning,
+                $"WinSxS has only {sxsDirCount} assemblies (normal Win11 has 8000+). " +
+                "Component store was heavily debloated — update integration will likely fail. Skipping updates.");
+            return false;
+        }
+
+        // 5. Check for servicing stack packages
+        var hasServicingStack = Directory.EnumerateDirectories(winsxsDir, "*servicing*", SearchOption.TopDirectoryOnly).Any();
+
+        if (!hasServicingStack && !File.Exists(trustedInstaller))
+        {
+            _logService.Log(LogLevel.Warning, "Servicing stack not found (no ServicingStack assemblies or TrustedInstaller). Updates will likely fail. Skipping.");
+            return false;
+        }
+
+        // 6. Check for CBS database (components.dat or similar)
+        var cbsDbDir = Path.Combine(mountPath, @"Windows\WinSxS\InstallTemp");
+        var packageDir = Path.Combine(mountPath, @"Windows\Servicing\Packages");
+        if (!Directory.Exists(packageDir) || !Directory.EnumerateFiles(packageDir, "*.mum").Any())
+        {
+            _logService.Log(LogLevel.Warning, "Servicing Packages directory empty or missing (.mum files). Component database may be broken. Skipping updates.");
+            return false;
+        }
+
+        _logService.Log(LogLevel.Info, $"Servicing stack intact ({sxsDirCount} WinSxS assemblies, Packages present). Updates can be applied.");
+        return true;
     }
 
     /// <summary>

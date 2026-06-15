@@ -80,7 +80,7 @@ Organized by category: Privacy, Telemetry, Performance, Network, Explorer, UI, S
 
 ## Installation
 
-Download `TrimKit-Setup-0.0.3.exe` from [Releases](https://github.com/CroatiaSecurity/TrimKit/releases).
+Download `TrimKit-Setup-0.0.4.exe` from [Releases](https://github.com/CroatiaSecurity/TrimKit/releases).
 
 ## Building from Source
 

@@ -21,6 +21,8 @@ public class WindowsServiceInfo
     public ServiceStartType StartType { get; set; }
     public ServiceStartType OriginalStartType { get; set; }
     public bool IsSelected { get; set; }
+    public bool IsProtected { get; set; }
+    public bool IsReadOnly { get; set; }
     public bool IsModified => StartType != OriginalStartType;
 }
 

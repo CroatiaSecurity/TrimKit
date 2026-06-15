@@ -52,11 +52,12 @@ public partial class App : System.Windows.Application
             var dependencyService = new DependencyService(httpClient, logService);
 
             var downloadViewModel = new DownloadViewModel(uupDumpService, msDownloadService, logService);
+            var updateCatalogService = new UpdateCatalogService(httpClient, logService);
             _mainViewModel = new MainViewModel(
                 dismService, registryService, presetService, logService,
                 downloadViewModel, isoService, serviceManager, imageToolsService,
                 unattendService, customizationService,
-                componentRemovalService, winSxsCleanupService);
+                componentRemovalService, winSxsCleanupService, updateCatalogService);
 
             _mainWindow = new MainWindow(_mainViewModel);
             _mainWindow.Show();
