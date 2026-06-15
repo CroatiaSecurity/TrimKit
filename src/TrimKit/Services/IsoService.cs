@@ -21,8 +21,9 @@ public class IsoService : IIsoService
     {
         _logService.Log(LogLevel.Info, $"Mounting ISO: {Path.GetFileName(isoPath)}");
 
-        // Mount-DiskImage requires NTFS. Copy to temp if on exFAT/FAT32.
         var actualPath = isoPath;
+
+        // Check if ISO is on a non-NTFS drive
         try
         {
             var root = Path.GetPathRoot(isoPath);
@@ -31,63 +32,49 @@ public class IsoService : IIsoService
                 var driveInfo = new DriveInfo(root);
                 if (!driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase))
                 {
-                    var tempPath = Path.Combine(Path.GetTempPath(), "TrimKit_" + Path.GetFileName(isoPath));
-                    if (!File.Exists(tempPath) || new FileInfo(tempPath).Length != new FileInfo(isoPath).Length)
-                    {
-                        _logService.Log(LogLevel.Info, $"Copying ISO from {driveInfo.DriveFormat} to temp (may take a minute)...");
-                        await using var source = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-                        await using var dest = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-                        await source.CopyToAsync(dest);
-                        _logService.Log(LogLevel.Success, "ISO copied to temp");
-                    }
-                    else
-                    {
-                        _logService.Log(LogLevel.Info, "Using cached temp copy");
-                    }
-                    actualPath = tempPath;
+                    _logService.Log(LogLevel.Info, $"ISO is on {driveInfo.DriveFormat} — copying to temp...");
+                    actualPath = Path.Combine(Path.GetTempPath(), "TrimKit_mount.iso");
+
+                    await using var source = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+                    await using var dest = new FileStream(actualPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+                    await source.CopyToAsync(dest);
+
+                    _logService.Log(LogLevel.Success, $"Copied ({new FileInfo(actualPath).Length / (1024.0 * 1024.0):F0} MB)");
                 }
             }
         }
         catch (Exception ex)
         {
-            _logService.Log(LogLevel.Warning, $"Drive check failed ({ex.Message}), trying direct mount...");
+            _logService.Log(LogLevel.Warning, $"Copy failed: {ex.Message}. Trying direct mount...");
         }
 
-        // Mount using PowerShell
-        var script = $@"
-            try {{
-                $img = Mount-DiskImage -ImagePath '{actualPath.Replace("'", "''")}' -PassThru -ErrorAction Stop
-                $vol = $img | Get-Volume -ErrorAction Stop
-                $vol.DriveLetter
-            }} catch {{
-                Write-Error $_.Exception.Message
-            }}
-        ";
-
-        var output = await RunPowerShellAsync(script);
-        var trimmed = output.Trim();
-
-        // Check for single drive letter
-        if (trimmed.Length == 1 && char.IsLetter(trimmed[0]))
+        // Mount
+        var psi = new System.Diagnostics.ProcessStartInfo
         {
-            var mountPath = $"{trimmed}:\\";
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -Command \"$r = Mount-DiskImage -ImagePath '{actualPath.Replace("'", "''")}' -PassThru; ($r | Get-Volume).DriveLetter\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new System.Diagnostics.Process { StartInfo = psi };
+        process.Start();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        var letter = output.Trim().Replace("\r", "").Replace("\n", "");
+
+        if (letter.Length == 1 && char.IsLetter(letter[0]))
+        {
+            var mountPath = $"{letter}:\\";
             _logService.Log(LogLevel.Success, $"ISO mounted at: {mountPath}");
             return mountPath;
         }
 
-        // Multi-line output? Try to find a drive letter in it
-        foreach (var line in output.Split('\n'))
-        {
-            var clean = line.Trim();
-            if (clean.Length == 1 && char.IsLetter(clean[0]))
-            {
-                var mountPath = $"{clean}:\\";
-                _logService.Log(LogLevel.Success, $"ISO mounted at: {mountPath}");
-                return mountPath;
-            }
-        }
-
-        throw new InvalidOperationException($"Mount-DiskImage failed. PowerShell output: {trimmed}");
+        throw new InvalidOperationException($"Mount failed: {(string.IsNullOrWhiteSpace(error) ? output : error).Trim()}");
     }
 
     public async Task UnmountIsoAsync(string isoPath)
