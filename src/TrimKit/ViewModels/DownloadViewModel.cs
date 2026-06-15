@@ -93,7 +93,7 @@ public partial class DownloadViewModel : ObservableObject
         try
         {
             IsBusy = true;
-            StatusText = "Loading build details...";
+            StatusText = $"Loading details for: {SelectedBuild.Id}...";
 
             Editions.Clear();
             Languages.Clear();
@@ -106,11 +106,11 @@ public partial class DownloadViewModel : ObservableObject
             foreach (var l in languages)
                 Languages.Add(l);
 
-            StatusText = "Select edition and language, then download";
+            StatusText = $"Loaded {Editions.Count} edition(s), {Languages.Count} language(s). Select and download.";
         }
         catch (Exception ex)
         {
-            StatusText = $"Failed to load details: {ex.Message}";
+            StatusText = $"Failed: {ex.Message}";
             _logService.Log(Models.LogLevel.Error, $"Build details failed: {ex.Message}");
         }
         finally
