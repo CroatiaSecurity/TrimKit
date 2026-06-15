@@ -141,16 +141,54 @@ public partial class MicrosoftDownloadService : IMicrosoftDownloadService
         return links;
     }
 
-    public async Task DownloadIsoAsync(string url, string outputPath, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default)
+    public async Task DownloadIsoAsync(string language, string outputPath, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default)
     {
-        _logService.Log(Models.LogLevel.Info, $"Downloading ISO to: {outputPath}");
-        progress?.Report((0, "Starting download..."));
+        _logService.Log(Models.LogLevel.Info, $"Attempting Microsoft direct ISO download ({language})...");
+        progress?.Report((5, "Fetching download page from Microsoft..."));
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.Clear();
-        request.Headers.TryAddWithoutValidation("User-Agent", LinuxUserAgent);
+        // Step 1: Get the Windows 11 download page with non-Windows user agent
+        var pageUrl = Win11Url;
+        using var pageRequest = new HttpRequestMessage(HttpMethod.Get, pageUrl);
+        pageRequest.Headers.UserAgent.Clear();
+        pageRequest.Headers.TryAddWithoutValidation("User-Agent", LinuxUserAgent);
 
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        var pageResponse = await _httpClient.SendAsync(pageRequest, ct);
+        var pageHtml = await pageResponse.Content.ReadAsStringAsync(ct);
+
+        // Step 2: Look for direct ISO download links in the page
+        var isoMatches = DownloadLinkRegex().Matches(pageHtml);
+        string? downloadUrl = null;
+
+        foreach (System.Text.RegularExpressions.Match match in isoMatches)
+        {
+            var url = match.Value;
+            if (url.Contains(language, StringComparison.OrdinalIgnoreCase) ||
+                url.Contains("x64", StringComparison.OrdinalIgnoreCase))
+            {
+                downloadUrl = url;
+                break;
+            }
+        }
+
+        // If no link found directly, the page likely requires a multi-step form submission
+        if (string.IsNullOrEmpty(downloadUrl))
+        {
+            throw new InvalidOperationException(
+                "Could not extract a direct download link from Microsoft. " +
+                "This technique depends on Microsoft's page structure which may have changed. " +
+                "Please use the UUP dump method instead, or download manually from: " +
+                "https://www.microsoft.com/software-download/windows11");
+        }
+
+        // Step 3: Download the ISO
+        progress?.Report((10, "Downloading ISO from Microsoft..."));
+        _logService.Log(Models.LogLevel.Info, $"Downloading from: {downloadUrl[..60]}...");
+
+        using var dlRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+        dlRequest.Headers.UserAgent.Clear();
+        dlRequest.Headers.TryAddWithoutValidation("User-Agent", LinuxUserAgent);
+
+        using var response = await _httpClient.SendAsync(dlRequest, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
         var totalBytes = response.Content.Headers.ContentLength ?? -1;
@@ -170,14 +208,14 @@ public partial class MicrosoftDownloadService : IMicrosoftDownloadService
 
             if (totalBytes > 0)
             {
-                var percent = (int)(bytesRead * 100 / totalBytes);
+                var percent = 10 + (int)(bytesRead * 90 / totalBytes);
                 var downloadedMb = bytesRead / (1024.0 * 1024.0);
-                progress?.Report((percent, $"Downloading: {downloadedMb:F0} / {totalMb:F0} MB ({percent}%)"));
+                progress?.Report((percent, $"Downloading: {downloadedMb:F0} / {totalMb:F0} MB ({percent - 10}%)"));
             }
         }
 
         _logService.Log(Models.LogLevel.Success, $"ISO downloaded: {outputPath}");
-        progress?.Report((100, "Download complete!"));
+        progress?.Report((100, $"Download complete! ({totalMb:F0} MB)"));
     }
 
     private static List<WindowsLanguage> GetFallbackLanguages()

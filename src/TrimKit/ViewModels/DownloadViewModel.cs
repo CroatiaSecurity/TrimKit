@@ -188,18 +188,12 @@ public partial class DownloadViewModel : ObservableObject
     [RelayCommand]
     private async Task DownloadDirectAsync()
     {
-        if (SelectedBuild == null || SelectedLanguage == null)
-        {
-            StatusText = "Please select a build and language first";
-            return;
-        }
-
         // Ask user where to save
         var saveDialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Save Windows ISO as",
+            Title = "Save Official Windows ISO as",
             Filter = "ISO Image (*.iso)|*.iso",
-            FileName = $"{SelectedBuild.Title.Replace(" ", "_").Replace("(", "").Replace(")", "")}_{SelectedLanguage.LangCode}.iso"
+            FileName = "Windows_Latest.iso"
         };
 
         if (saveDialog.ShowDialog() != true)
@@ -217,8 +211,11 @@ public partial class DownloadViewModel : ObservableObject
                 StatusText = p.status;
             });
 
+            // Use the language from the combobox if selected, otherwise default to en-us
+            var lang = SelectedLanguage?.LangCode ?? "en-us";
+
             await _msDownloadService.DownloadIsoAsync(
-                SelectedBuild.Id,
+                lang,
                 saveDialog.FileName,
                 progress,
                 _cts.Token);
@@ -231,7 +228,7 @@ public partial class DownloadViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Direct download failed: {ex.Message}. Try the UUP dump method instead.";
+            StatusText = $"Direct download not available: {ex.Message}. Use UUP dump instead.";
             _logService.Log(Models.LogLevel.Error, $"Direct download failed: {ex.Message}");
         }
         finally

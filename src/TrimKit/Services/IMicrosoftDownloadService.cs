@@ -12,7 +12,7 @@ public interface IMicrosoftDownloadService
     Task<List<MicrosoftProduct>> GetAvailableProductsAsync(CancellationToken ct = default);
     Task<List<WindowsLanguage>> GetProductLanguagesAsync(string productId, string sessionId, CancellationToken ct = default);
     Task<List<DownloadLink>> GetDownloadLinksAsync(string productId, string languageSkuId, string sessionId, CancellationToken ct = default);
-    Task DownloadIsoAsync(string url, string outputPath, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default);
+    Task DownloadIsoAsync(string language, string outputPath, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default);
 }
 
 public class MicrosoftProduct
