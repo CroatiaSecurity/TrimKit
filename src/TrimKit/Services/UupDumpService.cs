@@ -248,12 +248,11 @@ public class UupDumpService : IUupDumpService
         if (response?.Response?.Builds == null)
             return builds;
 
-        foreach (var kvp in response.Response.Builds)
+        foreach (var build in response.Response.Builds)
         {
-            var build = kvp.Value;
             builds.Add(new WindowsBuild
             {
-                Id = kvp.Key,
+                Id = build.Uuid ?? string.Empty,
                 Title = build.Title ?? string.Empty,
                 Build = build.Build ?? string.Empty,
                 Architecture = build.Arch ?? string.Empty,
@@ -289,7 +288,7 @@ public class UupDumpService : IUupDumpService
     private class UupListResponseBody
     {
         [JsonPropertyName("builds")]
-        public Dictionary<string, UupBuild>? Builds { get; set; }
+        public List<UupBuild>? Builds { get; set; }
     }
 
     private class UupBuild
@@ -302,6 +301,8 @@ public class UupDumpService : IUupDumpService
         public string? Arch { get; set; }
         [JsonPropertyName("created")]
         public long Created { get; set; }
+        [JsonPropertyName("uuid")]
+        public string? Uuid { get; set; }
     }
 
     private class UupLangsResponse
