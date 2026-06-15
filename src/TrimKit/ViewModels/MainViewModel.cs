@@ -85,7 +85,7 @@ public partial class MainViewModel : ObservableObject
             var ext = System.IO.Path.GetExtension(dialog.FileName).ToLowerInvariant();
             if (ext == ".iso")
             {
-                _ = ExtractFromIsoAsync(dialog.FileName);
+                _ = Task.Run(() => ExtractFromIsoAsync(dialog.FileName));
             }
             else if (ext == ".esd")
             {

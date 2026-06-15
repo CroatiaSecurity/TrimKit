@@ -24,13 +24,30 @@ public class IsoService : IIsoService
         // Mount-DiskImage requires the file to be on an NTFS volume.
         // If the ISO is on exFAT/FAT32 (e.g. Ventoy USB), copy to temp first.
         var actualPath = isoPath;
-        var driveInfo = new DriveInfo(Path.GetPathRoot(isoPath)!);
-        if (!driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            _logService.Log(LogLevel.Info, $"ISO is on {driveInfo.DriveFormat} drive — copying to temp for mounting...");
-            var tempPath = Path.Combine(Path.GetTempPath(), "TrimKit_" + Path.GetFileName(isoPath));
-            File.Copy(isoPath, tempPath, overwrite: true);
-            actualPath = tempPath;
+            var root = Path.GetPathRoot(isoPath);
+            if (!string.IsNullOrEmpty(root))
+            {
+                var driveInfo = new DriveInfo(root);
+                if (!driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logService.Log(LogLevel.Info, $"ISO is on {driveInfo.DriveFormat} — copying to temp...");
+                    var tempPath = Path.Combine(Path.GetTempPath(), "TrimKit_" + Path.GetFileName(isoPath));
+
+                    // Async copy to not freeze UI
+                    await using var source = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+                    await using var dest = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+                    await source.CopyToAsync(dest);
+
+                    actualPath = tempPath;
+                    _logService.Log(LogLevel.Success, "ISO copied to temp");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Drive check failed ({ex.Message}), trying direct mount...");
         }
 
         var script = $@"
