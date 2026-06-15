@@ -27,20 +27,42 @@ public class UupDumpService : IUupDumpService
 
     public async Task<List<WindowsBuild>> SearchBuildsAsync(string search, CancellationToken ct = default)
     {
-        var url = $"{ApiBase}/listid.php?search={Uri.EscapeDataString(search)}";
+        var url = $"{ApiBase}/listid.php?search={Uri.EscapeDataString(search)}&sortByDate=1";
         _logService.Log(Models.LogLevel.Info, $"Searching UUP dump: {search}");
 
         var response = await _httpClient.GetFromJsonAsync<UupListResponse>(url, JsonOptions, ct);
-        return ParseBuilds(response);
+        var builds = ParseBuilds(response);
+
+        // Filter to retail/stable only (exclude Insider Preview and Preview Update)
+        builds = builds.Where(b =>
+            !b.Title.Contains("Insider Preview", StringComparison.OrdinalIgnoreCase) &&
+            !b.Title.Contains("Preview Update", StringComparison.OrdinalIgnoreCase) &&
+            !b.Title.Contains("Update Stack Package", StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+
+        return builds;
     }
 
     public async Task<List<WindowsBuild>> GetLatestBuildsAsync(CancellationToken ct = default)
     {
-        var url = $"{ApiBase}/listid.php";
-        _logService.Log(Models.LogLevel.Info, "Fetching latest builds from UUP dump...");
+        // Fetch latest retail Windows 10 and 11 builds
+        _logService.Log(Models.LogLevel.Info, "Fetching latest retail builds...");
 
-        var response = await _httpClient.GetFromJsonAsync<UupListResponse>(url, JsonOptions, ct);
-        return ParseBuilds(response);
+        var allBuilds = new List<WindowsBuild>();
+
+        // Windows 11 24H2
+        var w11 = await SearchBuildsAsync("windows 11 26100", ct);
+        allBuilds.AddRange(w11);
+
+        // Windows 11 25H2
+        var w11_25h2 = await SearchBuildsAsync("windows 11 26200", ct);
+        allBuilds.AddRange(w11_25h2);
+
+        // Windows 10 22H2
+        var w10 = await SearchBuildsAsync("windows 10 19045", ct);
+        allBuilds.AddRange(w10);
+
+        return allBuilds.OrderByDescending(b => b.DateAdded).ToList();
     }
 
     public async Task<List<WindowsEdition>> GetEditionsAsync(string updateId, CancellationToken ct = default)
@@ -64,16 +86,22 @@ public class UupDumpService : IUupDumpService
         var response = await _httpClient.GetFromJsonAsync<UupLangsResponse>(url, JsonOptions, ct);
 
         var languages = new List<WindowsLanguage>();
-        if (response?.Response?.LangFancyNames != null)
+        if (response?.Response?.LangFancyNames.ValueKind == JsonValueKind.Object)
         {
-            foreach (var kvp in response.Response.LangFancyNames)
+            foreach (var prop in response.Response.LangFancyNames.EnumerateObject())
             {
                 languages.Add(new WindowsLanguage
                 {
-                    LangCode = kvp.Key,
-                    Name = kvp.Value
+                    LangCode = prop.Name,
+                    Name = prop.Value.GetString() ?? prop.Name
                 });
             }
+        }
+
+        if (languages.Count == 0)
+        {
+            // Fallback: provide common languages
+            languages.Add(new WindowsLanguage { LangCode = "en-us", Name = "English (United States)" });
         }
 
         _logService.Log(Models.LogLevel.Info, $"Found {languages.Count} language(s) for build");
@@ -248,11 +276,12 @@ public class UupDumpService : IUupDumpService
         if (response?.Response?.Builds == null)
             return builds;
 
-        foreach (var build in response.Response.Builds)
+        foreach (var kvp in response.Response.Builds)
         {
+            var build = kvp.Value;
             builds.Add(new WindowsBuild
             {
-                Id = build.Uuid ?? string.Empty,
+                Id = build.Uuid ?? kvp.Key,
                 Title = build.Title ?? string.Empty,
                 Build = build.Build ?? string.Empty,
                 Architecture = build.Arch ?? string.Empty,
@@ -288,7 +317,7 @@ public class UupDumpService : IUupDumpService
     private class UupListResponseBody
     {
         [JsonPropertyName("builds")]
-        public List<UupBuild>? Builds { get; set; }
+        public Dictionary<string, UupBuild>? Builds { get; set; }
     }
 
     private class UupBuild
@@ -321,7 +350,7 @@ public class UupDumpService : IUupDumpService
     private class UupLangsResponseBody
     {
         [JsonPropertyName("langFancyNames")]
-        public Dictionary<string, string>? LangFancyNames { get; set; }
+        public JsonElement LangFancyNames { get; set; }
     }
 
     private class UupGetResponse
