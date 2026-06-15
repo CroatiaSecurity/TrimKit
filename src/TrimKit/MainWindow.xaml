@@ -113,11 +113,15 @@
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#444750"/>
                 <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFFFFF"/>
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#292A2D"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#FFFFFF"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#35363A"/>
             </Style.Resources>
         </Style>
         <Style TargetType="ComboBoxItem">
             <Setter Property="Background" Value="#292A2D"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Padding" Value="6,4"/>
         </Style>
     </Window.Resources>
 

@@ -50,15 +50,20 @@ public class UupDumpService : IUupDumpService
     {
         _logService.Log(Models.LogLevel.Info, "Fetching latest retail builds...");
 
-        // Search broadly — the filter in SearchBuildsAsync handles the rest
-        // This catches any current and future Windows version
         var builds = new List<WindowsBuild>();
 
-        var result = await SearchBuildsAsync("windows 11", ct);
-        builds.AddRange(result);
+        // Search for each known major version — filter handles the rest
+        var searches = new[] { "windows 11 28000", "windows 11 26200", "windows 11 26100", "windows 10 19045" };
 
-        var result10 = await SearchBuildsAsync("windows 10", ct);
-        builds.AddRange(result10);
+        foreach (var search in searches)
+        {
+            try
+            {
+                var result = await SearchBuildsAsync(search, ct);
+                builds.AddRange(result);
+            }
+            catch { /* Some searches may return no results */ }
+        }
 
         // Deduplicate by ID
         return builds
