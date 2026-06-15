@@ -424,6 +424,162 @@ public class UupDumpService : IUupDumpService
         return true;
     }
 
+    /// <summary>
+    /// Downloads the UUP dump converter package (aria2 + wimlib + scripts) and runs it
+    /// to produce a proper bootable ISO. This is the same process as downloading from
+    /// the UUP dump website.
+    /// </summary>
+    public async Task DownloadWithConverterAsync(string updateId, string edition, string language, string outputIsoPath,
+        IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default, bool skipCumulativeUpdate = false)
+    {
+        var workDir = Path.Combine(Path.GetTempPath(), "TrimKit_UUP_" + updateId[..8]);
+        Directory.CreateDirectory(workDir);
+
+        try
+        {
+            // Step 1: Download the converter package from UUP dump
+            progress?.Report((5, "Downloading UUP dump converter package..."));
+            _logService.Log(Models.LogLevel.Info, "Fetching converter package from UUP dump...");
+
+            var downloadPageUrl = $"https://uupdump.net/get.php?id={updateId}&pack={language}&edition={edition}";
+            var packageUrl = $"https://uupdump.net/get.php?id={updateId}&pack={language}&edition={edition}&autodl=2";
+
+            // Download the zip package
+            var zipPath = Path.Combine(workDir, "uup_package.zip");
+            progress?.Report((8, "Downloading converter scripts + aria2c + wimlib..."));
+
+            using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Fallback: try the direct download API approach
+                _logService.Log(Models.LogLevel.Warning, $"Package download returned {response.StatusCode}. Trying alternative...");
+                throw new InvalidOperationException(
+                    $"UUP dump package download failed (HTTP {response.StatusCode}). " +
+                    $"Try downloading manually from: {downloadPageUrl}");
+            }
+
+            await using (var stream = await response.Content.ReadAsStreamAsync(ct))
+            await using (var fs = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+            {
+                await stream.CopyToAsync(fs, ct);
+            }
+
+            // Step 2: Extract the package
+            progress?.Report((15, "Extracting converter package..."));
+            var extractDir = Path.Combine(workDir, "converter");
+            if (Directory.Exists(extractDir))
+                Directory.Delete(extractDir, true);
+            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractDir);
+
+            // Step 3: Find and run the converter script
+            progress?.Report((20, "Starting UUP conversion (aria2c download + wimlib assembly)..."));
+
+            // The package contains a CMD script (uup_download_windows.cmd or similar)
+            var cmdScript = Directory.GetFiles(extractDir, "*.cmd", SearchOption.AllDirectories)
+                .FirstOrDefault(f => f.Contains("download", StringComparison.OrdinalIgnoreCase))
+                ?? Directory.GetFiles(extractDir, "*.cmd", SearchOption.AllDirectories).FirstOrDefault();
+
+            if (cmdScript == null)
+            {
+                throw new InvalidOperationException("No converter script found in the UUP dump package.");
+            }
+
+            _logService.Log(Models.LogLevel.Info, $"Running converter: {Path.GetFileName(cmdScript)}");
+
+            // Run the converter script
+            var scriptDir = Path.GetDirectoryName(cmdScript)!;
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c \"{cmdScript}\"",
+                WorkingDirectory = scriptDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = new System.Diagnostics.Process { StartInfo = psi };
+            process.Start();
+
+            // Read output in real-time for progress
+            var lastPercent = 20;
+            while (!process.StandardOutput.EndOfStream)
+            {
+                ct.ThrowIfCancellationRequested();
+                var line = await process.StandardOutput.ReadLineAsync(ct);
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // Parse aria2c progress or wimlib progress
+                if (line.Contains('%'))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(line, @"(\d+)%");
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out var pct))
+                    {
+                        lastPercent = 20 + (int)(pct * 0.7); // Map 0-100 to 20-90
+                        progress?.Report((lastPercent, line.Trim().Length > 80 ? line.Trim()[..80] : line.Trim()));
+                    }
+                }
+                else if (line.Contains("ERROR", StringComparison.OrdinalIgnoreCase) ||
+                         line.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logService.Log(Models.LogLevel.Error, $"Converter: {line.Trim()}");
+                    progress?.Report((lastPercent, $"ERROR: {line.Trim()}"));
+                }
+                else if (line.Contains("Creating ISO", StringComparison.OrdinalIgnoreCase) ||
+                         line.Contains("Done", StringComparison.OrdinalIgnoreCase))
+                {
+                    progress?.Report((92, line.Trim()));
+                }
+            }
+
+            await process.WaitForExitAsync(ct);
+
+            if (process.ExitCode != 0)
+            {
+                var stderr = await process.StandardError.ReadToEndAsync(ct);
+                throw new InvalidOperationException($"Converter failed (exit {process.ExitCode}): {stderr.Split('\n').FirstOrDefault()?.Trim()}");
+            }
+
+            // Step 4: Find the produced ISO and move it to the target path
+            progress?.Report((95, "Locating output ISO..."));
+
+            var producedIso = Directory.GetFiles(scriptDir, "*.iso", SearchOption.AllDirectories).FirstOrDefault()
+                ?? Directory.GetFiles(extractDir, "*.iso", SearchOption.AllDirectories).FirstOrDefault();
+
+            if (producedIso != null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(outputIsoPath)!);
+                File.Move(producedIso, outputIsoPath, overwrite: true);
+                var isoSize = new FileInfo(outputIsoPath).Length / (1024.0 * 1024.0 * 1024.0);
+                progress?.Report((100, $"ISO saved: {outputIsoPath} ({isoSize:F2} GB)"));
+                _logService.Log(Models.LogLevel.Success, $"ISO created: {outputIsoPath} ({isoSize:F2} GB)");
+            }
+            else
+            {
+                // Maybe it produced a WIM instead
+                var producedWim = Directory.GetFiles(scriptDir, "*.wim", SearchOption.AllDirectories).FirstOrDefault();
+                if (producedWim != null)
+                {
+                    var wimDest = Path.ChangeExtension(outputIsoPath, ".wim");
+                    File.Move(producedWim, wimDest, overwrite: true);
+                    progress?.Report((100, $"WIM saved (no ISO builder available): {wimDest}"));
+                    _logService.Log(Models.LogLevel.Success, $"WIM created: {wimDest}");
+                }
+                else
+                {
+                    throw new InvalidOperationException("Converter finished but no ISO or WIM was produced. Check that aria2c downloaded all files.");
+                }
+            }
+        }
+        finally
+        {
+            // Cleanup temp files
+            try { Directory.Delete(workDir, true); } catch { }
+        }
+    }
+
     private static List<WindowsEdition> GetCommonEditions()
     {
         return

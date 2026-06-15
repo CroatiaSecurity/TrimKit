@@ -11,4 +11,5 @@ public interface IUupDumpService
     Task<string> GetDownloadScriptUrlAsync(string updateId, string edition, string language, CancellationToken ct = default);
     Task<DownloadPackage> GetDownloadLinksAsync(string updateId, string edition, string language, CancellationToken ct = default);
     Task DownloadAndConvertAsync(string updateId, string edition, string language, string outputDir, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default, bool skipCumulativeUpdate = false);
+    Task DownloadWithConverterAsync(string updateId, string edition, string language, string outputIsoPath, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default, bool skipCumulativeUpdate = false);
 }

@@ -123,26 +123,30 @@ public partial class DownloadViewModel : ObservableObject
     [RelayCommand]
     private async Task DownloadAsync()
     {
-        if (SelectedSource == IsoSource.UupDump)
-            await DownloadFromUupDumpAsync();
-        else if (SelectedSource == IsoSource.MicrosoftDirect)
-            await DownloadFromMicrosoftAsync();
-    }
-
-    private async Task DownloadFromUupDumpAsync()
-    {
-        if (SelectedBuild == null || SelectedEdition == null || SelectedLanguage == null)
+        if (SelectedBuild == null || SelectedLanguage == null)
         {
-            StatusText = "Please select a build, edition, and language first";
+            StatusText = "Please select a build and language first";
             return;
         }
+
+        // Ask user where to save the ISO
+        var saveDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Save Windows ISO as",
+            Filter = "ISO Image (*.iso)|*.iso|WIM Image (*.wim)|*.wim",
+            FileName = $"{SelectedBuild.Title.Replace(" ", "_").Replace("(", "").Replace(")", "")}_{SelectedLanguage.LangCode}.iso"
+        };
+
+        if (saveDialog.ShowDialog() != true)
+            return;
+
+        OutputDirectory = Path.GetDirectoryName(saveDialog.FileName) ?? OutputDirectory;
+        var outputPath = saveDialog.FileName;
 
         try
         {
             IsBusy = true;
             _cts = new CancellationTokenSource();
-
-            Directory.CreateDirectory(OutputDirectory);
 
             var progress = new Progress<(int percent, string status)>(p =>
             {
@@ -150,16 +154,18 @@ public partial class DownloadViewModel : ObservableObject
                 StatusText = p.status;
             });
 
-            await _uupDumpService.DownloadAndConvertAsync(
+            // Use UUP dump converter package method (downloads scripts + aria2 + wimlib)
+            await _uupDumpService.DownloadWithConverterAsync(
                 SelectedBuild.Id,
-                SelectedEdition.EditionId,
+                SelectedEdition?.EditionId ?? "professional",
                 SelectedLanguage.LangCode,
-                OutputDirectory,
+                outputPath,
                 progress,
                 _cts.Token,
                 SkipCumulativeUpdate);
 
-            StatusText = $"Download complete! Files in: {OutputDirectory}";
+            StatusText = $"ISO created: {outputPath}";
+            _logService.Log(Models.LogLevel.Success, $"ISO saved: {outputPath}");
         }
         catch (OperationCanceledException)
         {
@@ -179,21 +185,31 @@ public partial class DownloadViewModel : ObservableObject
         }
     }
 
-    private async Task DownloadFromMicrosoftAsync()
+    [RelayCommand]
+    private async Task DownloadDirectAsync()
     {
-        if (SelectedDownloadLink == null || string.IsNullOrEmpty(SelectedDownloadLink.Url))
+        if (SelectedBuild == null || SelectedLanguage == null)
         {
-            StatusText = "Please select a download link first";
+            StatusText = "Please select a build and language first";
             return;
         }
+
+        // Ask user where to save
+        var saveDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Save Windows ISO as",
+            Filter = "ISO Image (*.iso)|*.iso",
+            FileName = $"{SelectedBuild.Title.Replace(" ", "_").Replace("(", "").Replace(")", "")}_{SelectedLanguage.LangCode}.iso"
+        };
+
+        if (saveDialog.ShowDialog() != true)
+            return;
 
         try
         {
             IsBusy = true;
             _cts = new CancellationTokenSource();
-
-            Directory.CreateDirectory(OutputDirectory);
-            var outputPath = Path.Combine(OutputDirectory, SelectedDownloadLink.FileName);
+            StatusText = "Getting direct download link from Microsoft...";
 
             var progress = new Progress<(int percent, string status)>(p =>
             {
@@ -201,9 +217,13 @@ public partial class DownloadViewModel : ObservableObject
                 StatusText = p.status;
             });
 
-            await _msDownloadService.DownloadIsoAsync(outputPath, outputPath, progress, _cts.Token);
+            await _msDownloadService.DownloadIsoAsync(
+                SelectedBuild.Id,
+                saveDialog.FileName,
+                progress,
+                _cts.Token);
 
-            StatusText = $"Download complete: {outputPath}";
+            StatusText = $"ISO downloaded: {saveDialog.FileName}";
         }
         catch (OperationCanceledException)
         {
@@ -211,8 +231,8 @@ public partial class DownloadViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Download failed: {ex.Message}";
-            _logService.Log(Models.LogLevel.Error, $"MS download failed: {ex.Message}");
+            StatusText = $"Direct download failed: {ex.Message}. Try the UUP dump method instead.";
+            _logService.Log(Models.LogLevel.Error, $"Direct download failed: {ex.Message}");
         }
         finally
         {
