@@ -21,60 +21,41 @@ public class IsoService : IIsoService
     {
         _logService.Log(LogLevel.Info, $"Mounting ISO: {Path.GetFileName(isoPath)}");
 
-        var actualPath = isoPath;
-
-        // Check if ISO is on a non-NTFS drive
-        try
-        {
-            var root = Path.GetPathRoot(isoPath);
-            if (!string.IsNullOrEmpty(root))
-            {
-                var driveInfo = new DriveInfo(root);
-                if (!driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logService.Log(LogLevel.Info, $"ISO is on {driveInfo.DriveFormat} — copying to temp...");
-                    actualPath = Path.Combine(Path.GetTempPath(), "TrimKit_mount.iso");
-
-                    await using var source = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-                    await using var dest = new FileStream(actualPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-                    await source.CopyToAsync(dest);
-
-                    _logService.Log(LogLevel.Success, $"Copied ({new FileInfo(actualPath).Length / (1024.0 * 1024.0):F0} MB)");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logService.Log(LogLevel.Warning, $"Copy failed: {ex.Message}. Trying direct mount...");
-        }
-
-        // Mount
+        // Use Explorer's shell verb "mount" which reliably assigns a drive letter
         var psi = new System.Diagnostics.ProcessStartInfo
         {
-            FileName = "powershell.exe",
-            Arguments = $"-NoProfile -Command \"$r = Mount-DiskImage -ImagePath '{actualPath.Replace("'", "''")}' -PassThru; ($r | Get-Volume).DriveLetter\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            FileName = isoPath,
+            Verb = "mount",
+            UseShellExecute = true
         };
 
-        using var process = new System.Diagnostics.Process { StartInfo = psi };
-        process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        System.Diagnostics.Process.Start(psi);
 
-        var letter = output.Trim().Replace("\r", "").Replace("\n", "");
+        // Wait for the mount to complete and find the new drive
+        _logService.Log(LogLevel.Info, "Waiting for Windows to mount ISO...");
+        await Task.Delay(3000);
 
-        if (letter.Length == 1 && char.IsLetter(letter[0]))
+        // Find the mounted drive by looking for sources\install.wim
+        for (int attempt = 0; attempt < 10; attempt++)
         {
-            var mountPath = $"{letter}:\\";
-            _logService.Log(LogLevel.Success, $"ISO mounted at: {mountPath}");
-            return mountPath;
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                if (drive.DriveType == DriveType.CDRom && drive.IsReady)
+                {
+                    var sourcesDir = Path.Combine(drive.RootDirectory.FullName, "sources");
+                    if (Directory.Exists(sourcesDir) &&
+                        (File.Exists(Path.Combine(sourcesDir, "install.wim")) ||
+                         File.Exists(Path.Combine(sourcesDir, "install.esd"))))
+                    {
+                        _logService.Log(LogLevel.Success, $"ISO mounted at: {drive.RootDirectory.FullName}");
+                        return drive.RootDirectory.FullName;
+                    }
+                }
+            }
+            await Task.Delay(1000);
         }
 
-        throw new InvalidOperationException($"Mount failed: {(string.IsNullOrWhiteSpace(error) ? output : error).Trim()}");
+        throw new InvalidOperationException("ISO mount timed out. Try double-clicking the ISO in Explorer, then browse to the mounted drive's sources\\install.wim");
     }
 
     public async Task UnmountIsoAsync(string isoPath)
