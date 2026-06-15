@@ -673,9 +673,19 @@ public partial class MainViewModel : ObservableObject
         }
 
         var hasBootMount = IsBootMounted && !string.IsNullOrEmpty(BootMountPath);
+        var componentCount = ProvisionedApps.Count(c => c.IsSelected) +
+                             Capabilities.Count(c => c.IsSelected) +
+                             Fonts.Count(c => c.IsSelected) +
+                             KeyboardLayouts.Count(c => c.IsSelected) +
+                             Languages.Count(c => c.IsSelected) +
+                             InboxDrivers.Count(c => c.IsSelected);
+        var serviceCount = Services.Count(s => s.IsSelected);
+
         var confirmMsg = "Apply all selected changes to the mounted image(s)?\n\nThis will:\n" +
             $"- Remove {Packages.Count(p => p.IsSelected)} package(s)\n" +
+            $"- Remove {componentCount} component(s) (apps, capabilities, fonts, keyboards, languages, drivers)\n" +
             $"- Modify {Features.Count(f => f.IsModified)} feature(s)\n" +
+            $"- Disable {serviceCount} service(s)\n" +
             $"- Apply {RegistryTweaks.Count(r => r.IsSelected)} registry tweak(s)\n" +
             $"- Add {DriverPaths.Count} driver path(s)\n";
 
@@ -1164,22 +1174,52 @@ public partial class MainViewModel : ObservableObject
         if (dialog.ShowDialog() != true)
             return;
 
+        // Collect ALL selected items from ALL tabs into the RemoveList
+        var removeList = new List<PresetComponent>();
+
+        // Packages
+        removeList.AddRange(Packages.Where(p => p.IsSelected).Select(p => new PresetComponent
+            { Id = p.PackageName, Name = p.DisplayName, Category = "Package" }));
+
+        // Provisioned Apps
+        removeList.AddRange(ProvisionedApps.Where(c => c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Apps" }));
+
+        // Capabilities
+        removeList.AddRange(Capabilities.Where(c => c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Capabilities" }));
+
+        // Fonts
+        removeList.AddRange(Fonts.Where(c => c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Fonts" }));
+
+        // Keyboard Layouts
+        removeList.AddRange(KeyboardLayouts.Where(c => c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Keyboards" }));
+
+        // Languages
+        removeList.AddRange(Languages.Where(c => c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Languages" }));
+
+        // Inbox Drivers
+        removeList.AddRange(InboxDrivers.Where(c => c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Drivers" }));
+
+        // KeepList = everything NOT selected (from all collections)
+        var keepList = new List<PresetComponent>();
+        keepList.AddRange(Packages.Where(p => !p.IsSelected).Select(p => new PresetComponent
+            { Id = p.PackageName, Name = p.DisplayName, Category = "Package" }));
+        keepList.AddRange(ProvisionedApps.Where(c => !c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Apps" }));
+        keepList.AddRange(Capabilities.Where(c => !c.IsSelected).Select(c => new PresetComponent
+            { Id = c.Id, Name = c.DisplayName, Category = "Capabilities" }));
+
         var preset = new Preset
         {
             Name = Path.GetFileNameWithoutExtension(dialog.FileName),
             SourceFormat = "TrimKit",
-            RemoveList = Packages.Where(p => p.IsSelected).Select(p => new PresetComponent
-            {
-                Id = p.PackageName,
-                Name = p.DisplayName,
-                Category = "Package"
-            }).ToList(),
-            KeepList = Packages.Where(p => !p.IsSelected).Select(p => new PresetComponent
-            {
-                Id = p.PackageName,
-                Name = p.DisplayName,
-                Category = "Package"
-            }).ToList(),
+            RemoveList = removeList,
+            KeepList = keepList,
             FeatureChanges = Features.Where(f => f.IsModified).Select(f => new FeaturePreset
             {
                 FeatureName = f.FeatureName,
@@ -1278,18 +1318,65 @@ public partial class MainViewModel : ObservableObject
 
     private void ApplyPresetToUI(Preset preset)
     {
-        // Apply remove/keep lists to packages
-        // Keep list takes priority — if a package is in Keep, it stays unselected for removal
+        // Build lookup sets — Keep takes priority over Remove
         var keepIds = new HashSet<string>(preset.KeepList.Select(k => k.Id), StringComparer.OrdinalIgnoreCase);
         var removeIds = new HashSet<string>(preset.RemoveList.Select(r => r.Id), StringComparer.OrdinalIgnoreCase);
+        // Also match by display name for NTLite/WinReducer presets that use different ID formats
+        var removeNames = new HashSet<string>(preset.RemoveList.Select(r => r.Name), StringComparer.OrdinalIgnoreCase);
 
+        // Apply to Packages
         foreach (var pkg in Packages)
         {
             if (keepIds.Contains(pkg.PackageName))
-                pkg.IsSelected = false; // Explicitly kept
-            else if (removeIds.Contains(pkg.PackageName))
-                pkg.IsSelected = true;  // Marked for removal
-            // else: leave unchanged (not mentioned in preset)
+                pkg.IsSelected = false;
+            else if (removeIds.Contains(pkg.PackageName) || removeNames.Contains(pkg.DisplayName))
+                pkg.IsSelected = true;
+        }
+
+        // Apply to Provisioned Apps
+        foreach (var app in ProvisionedApps)
+        {
+            if (keepIds.Contains(app.Id))
+                app.IsSelected = false;
+            else if (removeIds.Contains(app.Id) || removeNames.Contains(app.DisplayName))
+                app.IsSelected = true;
+        }
+
+        // Apply to Capabilities
+        foreach (var cap in Capabilities)
+        {
+            if (keepIds.Contains(cap.Id))
+                cap.IsSelected = false;
+            else if (removeIds.Contains(cap.Id) || removeNames.Contains(cap.DisplayName))
+                cap.IsSelected = true;
+        }
+
+        // Apply to Fonts
+        foreach (var font in Fonts)
+        {
+            if (removeIds.Contains(font.Id) || removeNames.Contains(font.DisplayName))
+                font.IsSelected = !font.IsProtected; // Don't select protected fonts
+        }
+
+        // Apply to Keyboard Layouts
+        foreach (var kbd in KeyboardLayouts)
+        {
+            if (removeIds.Contains(kbd.Id) || removeNames.Contains(kbd.DisplayName))
+                kbd.IsSelected = true;
+        }
+
+        // Apply to Languages
+        foreach (var lang in Languages)
+        {
+            if (removeIds.Contains(lang.Id) || removeNames.Contains(lang.DisplayName))
+                lang.IsSelected = true;
+        }
+
+        // Apply to Inbox Drivers
+        foreach (var drv in InboxDrivers)
+        {
+            if (removeIds.Contains(drv.Id) || removeNames.Contains(drv.DisplayName))
+                drv.IsSelected = true;
         }
 
         // Apply feature changes
@@ -1301,14 +1388,19 @@ public partial class MainViewModel : ObservableObject
                 feat.IsEnabled = presetFeat.Enable;
         }
 
-        // Apply registry tweak selections
+        // Apply registry tweak selections (additive — don't clear existing selections)
         foreach (var tweak in RegistryTweaks)
-            tweak.IsSelected = preset.RegistryTweaks.Any(r => r.Name == tweak.Name);
+        {
+            if (preset.RegistryTweaks.Any(r => r.Name == tweak.Name))
+                tweak.IsSelected = true;
+        }
 
-        // Apply driver paths
-        DriverPaths.Clear();
+        // Apply driver paths (additive)
         foreach (var path in preset.DriverPaths)
-            DriverPaths.Add(path);
+        {
+            if (!DriverPaths.Contains(path))
+                DriverPaths.Add(path);
+        }
     }
 
     [RelayCommand]

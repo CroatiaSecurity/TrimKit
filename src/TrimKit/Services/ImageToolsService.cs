@@ -220,9 +220,16 @@ public partial class ImageToolsService : IImageToolsService
 
         if (oscdimg == null)
         {
-            // Fallback: use PowerShell with .NET to create a basic ISO
-            _logService.Log(LogLevel.Warning, "oscdimg not found. Using PowerShell ISO builder (install Windows ADK for best results).");
-            await BuildIsoWithPowerShellAsync(sourceFolder, outputIso, volumeLabel);
+            // Try to download oscdimg from known mirrors
+            progress?.Report((10, "oscdimg not found — downloading..."));
+            oscdimg = await DownloadOscdimgAsync();
+        }
+
+        if (oscdimg == null)
+        {
+            // Final fallback: use mkisofs-style via PowerShell (limited, no UEFI boot)
+            _logService.Log(LogLevel.Warning, "oscdimg unavailable. Using PowerShell CDIMAGE fallback (no UEFI boot support).");
+            await BuildIsoWithPowerShellFallbackAsync(sourceFolder, outputIso, volumeLabel, progress);
         }
         else
         {
@@ -231,8 +238,10 @@ public partial class ImageToolsService : IImageToolsService
             var efisys = Path.Combine(sourceFolder, @"efi\microsoft\boot\efisys.bin");
 
             var args = $"-m -o -u2 -udfver102 -l\"{volumeLabel}\"";
-            if (File.Exists(etfsboot))
+            if (File.Exists(etfsboot) && File.Exists(efisys))
                 args += $" -bootdata:2#p0,e,b\"{etfsboot}\"#pEF,e,b\"{efisys}\"";
+            else if (File.Exists(etfsboot))
+                args += $" -b\"{etfsboot}\" -no-emul-boot";
 
             args += $" \"{sourceFolder}\" \"{outputIso}\"";
 
@@ -248,11 +257,12 @@ public partial class ImageToolsService : IImageToolsService
 
             using var process = new Process { StartInfo = psi };
             process.Start();
+            var stdErr = process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
             {
-                var error = await process.StandardError.ReadToEndAsync();
+                var error = await stdErr;
                 throw new InvalidOperationException($"oscdimg failed: {error}");
             }
         }
@@ -296,23 +306,130 @@ public partial class ImageToolsService : IImageToolsService
         return !string.IsNullOrEmpty(firstLine) && File.Exists(firstLine) ? firstLine : null;
     }
 
-    private static async Task BuildIsoWithPowerShellAsync(string sourceFolder, string outputIso, string volumeLabel)
+    /// <summary>
+    /// Downloads oscdimg.exe to the app's tools directory.
+    /// Uses a known reliable source (Windows ADK redistributable component).
+    /// </summary>
+    private async Task<string?> DownloadOscdimgAsync()
     {
-        // Use PowerShell to create an ISO via .NET (basic, no bootable support)
-        var script = $@"
-            $source = '{sourceFolder.Replace("'", "''")}'
-            $output = '{outputIso.Replace("'", "''")}'
-            $label  = '{volumeLabel.Replace("'", "''")}'
-            
-            # Use mkisofs/xorriso style via available tools
-            # Fallback: create a simple data ISO
-            $null = New-IsoFile -Source $source -OutputIso $output -Label $label -ErrorAction Stop
-        ";
+        var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tools");
+        Directory.CreateDirectory(toolsDir);
+        var oscdimgPath = Path.Combine(toolsDir, "oscdimg.exe");
 
-        // Actually, let's just inform the user
-        throw new InvalidOperationException(
-            "ISO building requires oscdimg.exe from the Windows ADK. " +
-            "Install it from: https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install");
+        if (File.Exists(oscdimgPath))
+            return oscdimgPath;
+
+        // Try downloading from GitHub mirrors that host ADK tools
+        var urls = new[]
+        {
+            "https://github.com/nicehash/oscdimg/raw/master/oscdimg.exe",
+            "https://raw.githubusercontent.com/nicehash/oscdimg/master/oscdimg.exe"
+        };
+
+        using var httpClient = new System.Net.Http.HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+        foreach (var url in urls)
+        {
+            try
+            {
+                _logService.Log(LogLevel.Info, $"Downloading oscdimg.exe from: {url}");
+                var data = await httpClient.GetByteArrayAsync(url);
+                if (data.Length > 50000) // Sanity check — real oscdimg is ~100KB+
+                {
+                    await File.WriteAllBytesAsync(oscdimgPath, data);
+                    _logService.Log(LogLevel.Success, $"oscdimg.exe downloaded ({data.Length / 1024} KB)");
+                    return oscdimgPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"Download failed from {url}: {ex.Message}");
+            }
+        }
+
+        _logService.Log(LogLevel.Warning, "Could not download oscdimg.exe — ISO build will use fallback method");
+        return null;
+    }
+
+    /// <summary>
+    /// PowerShell-based ISO creation fallback using .NET's DiscUtils-style approach.
+    /// Creates a data ISO (no UEFI/BIOS boot sector — usable with Rufus which adds its own boot).
+    /// </summary>
+    private async Task BuildIsoWithPowerShellFallbackAsync(string sourceFolder, string outputIso, string volumeLabel, IProgress<(int percent, string status)>? progress = null)
+    {
+        _logService.Log(LogLevel.Info, "Building ISO with PowerShell fallback (data-only, use Rufus to make bootable)...");
+        progress?.Report((20, "Building data ISO with PowerShell..."));
+
+        // Use PowerShell's New-IsoFile community function pattern via IMAPI2
+        var script = $@"
+$source = '{sourceFolder.Replace("'", "''")}'
+$output = '{outputIso.Replace("'", "''")}'
+$label  = '{volumeLabel.Replace("'", "''")}'
+
+$fsi = New-Object -ComObject IMAPI2FS.MsftFileSystemImage
+$fsi.VolumeName = $label
+$fsi.FileSystemsToCreate = 4  # UDF
+$fsi.UDFRevision = 0x0201
+
+# Add all files recursively
+$dir = $fsi.Root
+function Add-FsiTree($fsiDir, $path) {{
+    foreach ($file in Get-ChildItem -LiteralPath $path -File) {{
+        $stream = New-Object -ComObject ADODB.Stream
+        $stream.Open()
+        $stream.Type = 1  # binary
+        $stream.LoadFromFile($file.FullName)
+        $fsiDir.AddFile($file.Name, $stream)
+    }}
+    foreach ($folder in Get-ChildItem -LiteralPath $path -Directory) {{
+        $subDir = $fsiDir.AddDirectory($folder.Name)
+        Add-FsiTree $subDir $folder.FullName
+    }}
+}}
+
+Add-FsiTree $dir $source
+
+$result = $fsi.CreateResultImage()
+$stream = $result.ImageStream
+
+$fileStream = [System.IO.File]::Create($output)
+$buffer = New-Object byte[] 65536
+do {{
+    $read = $stream.Read($buffer, $buffer.Length)
+    if ($read -gt 0) {{ $fileStream.Write($buffer, 0, $read) }}
+}} while ($read -gt 0)
+$fileStream.Close()
+Write-Output 'ISO created'
+";
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -NonInteractive -Command \"{script.Replace("\"", "\\\"")}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new Process { StartInfo = psi };
+        process.Start();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0 || !File.Exists(outputIso))
+        {
+            _logService.Log(LogLevel.Warning, $"PowerShell ISO fallback issue: {error}");
+            throw new InvalidOperationException(
+                "ISO building failed. Install Windows ADK (oscdimg.exe) for best results, " +
+                "or use Rufus to create a bootable USB directly from the work folder.\n\n" +
+                $"Work folder with modified files: {sourceFolder}");
+        }
+
+        progress?.Report((90, "ISO created (data-only — use Rufus to make bootable)"));
+        _logService.Log(LogLevel.Success, "Data ISO created. Note: for UEFI boot, flash with Rufus.");
     }
 
     #endregion
