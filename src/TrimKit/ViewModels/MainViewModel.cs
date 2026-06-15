@@ -76,7 +76,7 @@ public partial class MainViewModel : ObservableObject
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Filter = "WIM Files (*.wim)|*.wim|ESD Files (*.esd)|*.esd|ISO Files (*.iso)|*.iso|All Files (*.*)|*.*",
+            Filter = "ISO Files (*.iso)|*.iso|WIM Files (*.wim)|*.wim|ESD Files (*.esd)|*.esd|All Files (*.*)|*.*",
             Title = "Select Windows Image File"
         };
 
