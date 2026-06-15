@@ -259,8 +259,8 @@ public class UupDumpService : IUupDumpService
         }
 
         // Convert UUP files to ISO using the converter script
-        progress?.Report((80, "Converting UUP files to ISO..."));
-        await ConvertUupToIsoAsync(downloadDir, outputDir, edition, ct);
+        progress?.Report((80, "Converting UUP files to WIM (this may take 10-30 min)..."));
+        await ConvertUupToIsoAsync(downloadDir, outputDir, edition, progress, ct);
 
         progress?.Report((100, "ISO creation complete!"));
         _logService.Log(Models.LogLevel.Success, $"ISO created in: {outputDir}");
@@ -276,10 +276,10 @@ public class UupDumpService : IUupDumpService
         await stream.CopyToAsync(fileStream, ct);
     }
 
-    private async Task ConvertUupToIsoAsync(string uupDir, string outputDir, string edition, CancellationToken ct)
+    private async Task ConvertUupToIsoAsync(string uupDir, string outputDir, string edition,
+        IProgress<(int percent, string status)>? progress, CancellationToken ct)
     {
-        // Use DISM to create the ISO from ESD/CAB files
-        // First, check if there's an ESD file we can convert
+        // Use DISM to create the WIM from ESD/CAB files
         var esdFiles = Directory.GetFiles(uupDir, "*.esd");
 
         if (esdFiles.Length > 0)
@@ -291,42 +291,38 @@ public class UupDumpService : IUupDumpService
                 ?? esdFiles[0];
 
             _logService.Log(Models.LogLevel.Info, $"Converting ESD to WIM: {Path.GetFileName(mainEsd)}");
+            progress?.Report((80, $"DISM: Exporting {Path.GetFileName(mainEsd)} → install.wim ..."));
 
-            // Export from ESD to WIM using DISM
-            var psi = new System.Diagnostics.ProcessStartInfo
+            var success = await RunDismWithProgressAsync(
+                $"/Export-Image /SourceImageFile:\"{mainEsd}\" /All /DestinationImageFile:\"{wimOutput}\" /Compress:Max",
+                progress, 80, 98, ct);
+
+            if (!success)
             {
-                FileName = "dism.exe",
-                Arguments = $"/Export-Image /SourceImageFile:\"{mainEsd}\" /All /DestinationImageFile:\"{wimOutput}\" /Compress:Max",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                _logService.Log(Models.LogLevel.Warning, "DISM /All failed. Trying individual index export...");
+                progress?.Report((82, "DISM: Retrying with index 1..."));
 
-            using var process = new System.Diagnostics.Process { StartInfo = psi };
-            process.Start();
-            await process.WaitForExitAsync(ct);
-
-            if (process.ExitCode != 0)
-            {
-                var error = await process.StandardError.ReadToEndAsync(ct);
-                _logService.Log(Models.LogLevel.Warning, $"ESD export issue: {error}. Will try individual index export.");
-
-                // Try exporting index 1 (skip metadata index)
-                psi.Arguments = $"/Export-Image /SourceImageFile:\"{mainEsd}\" /SourceIndex:1 /DestinationImageFile:\"{wimOutput}\" /Compress:Max";
-                using var retry = new System.Diagnostics.Process { StartInfo = psi };
-                retry.Start();
-                await retry.WaitForExitAsync(ct);
+                success = await RunDismWithProgressAsync(
+                    $"/Export-Image /SourceImageFile:\"{mainEsd}\" /SourceIndex:1 /DestinationImageFile:\"{wimOutput}\" /Compress:Max",
+                    progress, 82, 98, ct);
             }
 
             if (File.Exists(wimOutput))
             {
-                _logService.Log(Models.LogLevel.Success, $"Created WIM: {wimOutput}");
+                var sizeMb = new FileInfo(wimOutput).Length / (1024.0 * 1024.0);
+                _logService.Log(Models.LogLevel.Success, $"Created WIM: {wimOutput} ({sizeMb:F0} MB)");
+                progress?.Report((99, $"Done: install.wim ({sizeMb:F0} MB)"));
+            }
+            else
+            {
+                _logService.Log(Models.LogLevel.Error, "WIM creation failed — no output file produced");
+                progress?.Report((99, "ERROR: WIM file was not created"));
             }
         }
         else
         {
             _logService.Log(Models.LogLevel.Warning, "No ESD files found. UUP files downloaded but ISO assembly requires additional tooling (wimlib/oscdimg).");
+            progress?.Report((99, "No ESD files found — download may have been incomplete"));
         }
     }
 
@@ -350,6 +346,82 @@ public class UupDumpService : IUupDumpService
         }
 
         return builds.OrderByDescending(b => b.DateAdded).ToList();
+    }
+
+    /// <summary>
+    /// Runs DISM and parses its stdout in real-time to report progress percentage.
+    /// DISM outputs lines like "[ 42.3%]" during export operations.
+    /// </summary>
+    private async Task<bool> RunDismWithProgressAsync(string arguments,
+        IProgress<(int percent, string status)>? progress, int progressMin, int progressMax, CancellationToken ct)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "dism.exe",
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new System.Diagnostics.Process { StartInfo = psi };
+        var errors = new System.Text.StringBuilder();
+
+        process.ErrorDataReceived += (s, e) =>
+        {
+            if (!string.IsNullOrWhiteSpace(e.Data))
+            {
+                errors.AppendLine(e.Data);
+                _logService.Log(Models.LogLevel.Warning, $"DISM: {e.Data}");
+            }
+        };
+
+        process.Start();
+        process.BeginErrorReadLine();
+
+        // Read stdout line-by-line to parse progress
+        var lastReportedPercent = 0;
+        while (!process.StandardOutput.EndOfStream)
+        {
+            ct.ThrowIfCancellationRequested();
+            var line = await process.StandardOutput.ReadLineAsync(ct);
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Parse DISM progress: lines contain "[==== 23.4% ]" or "[ 100.0%]"
+            var percentMatch = System.Text.RegularExpressions.Regex.Match(line, @"([\d.]+)%");
+            if (percentMatch.Success && double.TryParse(percentMatch.Groups[1].Value, out var dismPercent))
+            {
+                var mapped = progressMin + (int)((dismPercent / 100.0) * (progressMax - progressMin));
+                if (mapped > lastReportedPercent)
+                {
+                    lastReportedPercent = mapped;
+                    progress?.Report((mapped, $"DISM: {dismPercent:F1}% — Exporting image..."));
+                }
+            }
+            else if (line.Contains("Error", StringComparison.OrdinalIgnoreCase) ||
+                     line.Contains("failed", StringComparison.OrdinalIgnoreCase))
+            {
+                _logService.Log(Models.LogLevel.Error, $"DISM: {line.Trim()}");
+                progress?.Report((lastReportedPercent, $"DISM ERROR: {line.Trim()}"));
+            }
+            else if (line.Contains("successfully", StringComparison.OrdinalIgnoreCase))
+            {
+                _logService.Log(Models.LogLevel.Success, $"DISM: {line.Trim()}");
+            }
+        }
+
+        await process.WaitForExitAsync(ct);
+
+        if (process.ExitCode != 0)
+        {
+            var errorText = errors.ToString();
+            _logService.Log(Models.LogLevel.Error, $"DISM failed (exit {process.ExitCode}): {errorText}");
+            progress?.Report((lastReportedPercent, $"DISM failed: {errorText.Split('\n').FirstOrDefault()?.Trim()}"));
+            return false;
+        }
+
+        return true;
     }
 
     private static List<WindowsEdition> GetCommonEditions()
