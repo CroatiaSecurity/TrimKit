@@ -34,13 +34,13 @@ public class UupDumpService : IUupDumpService
         var builds = ParseBuilds(response);
 
         // Keep only actual OS builds: "Windows XX, version YYY (...)"
-        // These always start with "Windows 1" (10, 11, 12...) followed by ", version"
-        // This excludes: Cumulative Updates, Feature updates to older ver, .NET, Stack Packages, Insider
+        // Filter to amd64 only by default (most users). ARM users can search explicitly.
         builds = builds.Where(b =>
             b.Title.StartsWith("Windows ", StringComparison.OrdinalIgnoreCase) &&
             b.Title.Contains(", version ", StringComparison.OrdinalIgnoreCase) &&
             !b.Title.Contains("Insider Preview", StringComparison.OrdinalIgnoreCase) &&
-            !b.Title.Contains("Preview Update", StringComparison.OrdinalIgnoreCase)
+            !b.Title.Contains("Preview Update", StringComparison.OrdinalIgnoreCase) &&
+            b.Architecture.Equals("amd64", StringComparison.OrdinalIgnoreCase)
         ).ToList();
 
         return builds;
