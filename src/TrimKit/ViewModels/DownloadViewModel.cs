@@ -22,6 +22,7 @@ public partial class DownloadViewModel : ObservableObject
     [ObservableProperty] private WindowsLanguage? _selectedLanguage;
     [ObservableProperty] private string _outputDirectory = string.Empty;
     [ObservableProperty] private IsoSource _selectedSource = IsoSource.UupDump;
+    [ObservableProperty] private bool _skipCumulativeUpdate = true;
     [ObservableProperty] private MicrosoftProduct? _selectedMsProduct;
     [ObservableProperty] private DownloadLink? _selectedDownloadLink;
 
@@ -155,7 +156,8 @@ public partial class DownloadViewModel : ObservableObject
                 SelectedLanguage.LangCode,
                 OutputDirectory,
                 progress,
-                _cts.Token);
+                _cts.Token,
+                SkipCumulativeUpdate);
 
             StatusText = $"Download complete! Files in: {OutputDirectory}";
         }

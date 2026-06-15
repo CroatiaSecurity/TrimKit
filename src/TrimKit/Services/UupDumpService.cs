@@ -192,7 +192,7 @@ public class UupDumpService : IUupDumpService
     }
 
     public async Task DownloadAndConvertAsync(string updateId, string edition, string language, string outputDir,
-        IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default)
+        IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default, bool skipCumulativeUpdate = false)
     {
         Directory.CreateDirectory(outputDir);
 
@@ -204,14 +204,29 @@ public class UupDumpService : IUupDumpService
             throw new InvalidOperationException("No files available for download. The build may have expired from Microsoft's servers.");
         }
 
+        // Filter out cumulative update (.msu) files if user opted to skip
+        var filesToDownload = package.Files;
+        if (skipCumulativeUpdate)
+        {
+            filesToDownload = filesToDownload.Where(f =>
+                !f.FileName.EndsWith(".msu", StringComparison.OrdinalIgnoreCase) &&
+                !f.FileName.Contains("cumulative", StringComparison.OrdinalIgnoreCase) &&
+                !f.FileName.Contains("Windows1", StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+
+            var skipped = package.Files.Count - filesToDownload.Count;
+            if (skipped > 0)
+                _logService.Log(Models.LogLevel.Info, $"Skipping {skipped} cumulative update file(s)");
+        }
+
         // Download all UUP files
         var downloadDir = Path.Combine(outputDir, "UUPs");
         Directory.CreateDirectory(downloadDir);
 
-        var totalFiles = package.Files.Count;
+        var totalFiles = filesToDownload.Count;
         var downloaded = 0;
 
-        foreach (var file in package.Files)
+        foreach (var file in filesToDownload)
         {
             ct.ThrowIfCancellationRequested();
 

@@ -300,12 +300,25 @@
                                 HorizontalAlignment="Stretch"/>
 
                         <TextBlock Text="Edition" Foreground="#80868E" Margin="0,0,0,4" FontSize="11.5"/>
-                        <ComboBox ItemsSource="{Binding Editions}" SelectedItem="{Binding SelectedEdition}"
-                                  DisplayMemberPath="Name" Margin="0,0,0,10"/>
+                        <ComboBox ItemsSource="{Binding Editions}" SelectedItem="{Binding SelectedEdition}" Margin="0,0,0,10">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Foreground="#FFFFFF"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
                         <TextBlock Text="Language" Foreground="#80868E" Margin="0,0,0,4" FontSize="11.5"/>
-                        <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}"
-                                  DisplayMemberPath="Name" Margin="0,0,0,10"/>
+                        <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" Margin="0,0,0,10">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" Foreground="#FFFFFF"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <CheckBox Content="Skip cumulative update (saves ~3 GB)" Foreground="#B4B8BE" 
+                                  IsChecked="{Binding SkipCumulativeUpdate}" Margin="0,0,0,10"/>
 
                         <TextBlock Text="Output Folder" Foreground="#80868E" Margin="0,0,0,4" FontSize="11.5"/>
                         <Grid Margin="0,0,0,14">

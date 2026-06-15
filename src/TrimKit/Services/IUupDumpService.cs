@@ -10,5 +10,5 @@ public interface IUupDumpService
     Task<List<WindowsLanguage>> GetLanguagesAsync(string updateId, CancellationToken ct = default);
     Task<string> GetDownloadScriptUrlAsync(string updateId, string edition, string language, CancellationToken ct = default);
     Task<DownloadPackage> GetDownloadLinksAsync(string updateId, string edition, string language, CancellationToken ct = default);
-    Task DownloadAndConvertAsync(string updateId, string edition, string language, string outputDir, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default);
+    Task DownloadAndConvertAsync(string updateId, string edition, string language, string outputDir, IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default, bool skipCumulativeUpdate = false);
 }
