@@ -21,8 +21,7 @@ public class IsoService : IIsoService
     {
         _logService.Log(LogLevel.Info, $"Mounting ISO: {Path.GetFileName(isoPath)}");
 
-        // Mount-DiskImage requires the file to be on an NTFS volume.
-        // If the ISO is on exFAT/FAT32 (e.g. Ventoy USB), copy to temp first.
+        // Mount-DiskImage requires NTFS. Copy to temp if on exFAT/FAT32.
         var actualPath = isoPath;
         try
         {
@@ -32,16 +31,20 @@ public class IsoService : IIsoService
                 var driveInfo = new DriveInfo(root);
                 if (!driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logService.Log(LogLevel.Info, $"ISO is on {driveInfo.DriveFormat} — copying to temp...");
                     var tempPath = Path.Combine(Path.GetTempPath(), "TrimKit_" + Path.GetFileName(isoPath));
-
-                    // Async copy to not freeze UI
-                    await using var source = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-                    await using var dest = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-                    await source.CopyToAsync(dest);
-
+                    if (!File.Exists(tempPath) || new FileInfo(tempPath).Length != new FileInfo(isoPath).Length)
+                    {
+                        _logService.Log(LogLevel.Info, $"Copying ISO from {driveInfo.DriveFormat} to temp (may take a minute)...");
+                        await using var source = new FileStream(isoPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+                        await using var dest = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+                        await source.CopyToAsync(dest);
+                        _logService.Log(LogLevel.Success, "ISO copied to temp");
+                    }
+                    else
+                    {
+                        _logService.Log(LogLevel.Info, "Using cached temp copy");
+                    }
                     actualPath = tempPath;
-                    _logService.Log(LogLevel.Success, "ISO copied to temp");
                 }
             }
         }
@@ -50,23 +53,41 @@ public class IsoService : IIsoService
             _logService.Log(LogLevel.Warning, $"Drive check failed ({ex.Message}), trying direct mount...");
         }
 
+        // Mount using PowerShell
         var script = $@"
-            $result = Mount-DiskImage -ImagePath '{actualPath.Replace("'", "''")}' -PassThru
-            $volume = $result | Get-Volume
-            $volume.DriveLetter
+            try {{
+                $img = Mount-DiskImage -ImagePath '{actualPath.Replace("'", "''")}' -PassThru -ErrorAction Stop
+                $vol = $img | Get-Volume -ErrorAction Stop
+                $vol.DriveLetter
+            }} catch {{
+                Write-Error $_.Exception.Message
+            }}
         ";
 
         var output = await RunPowerShellAsync(script);
-        var driveLetter = output.Trim();
+        var trimmed = output.Trim();
 
-        if (string.IsNullOrWhiteSpace(driveLetter) || driveLetter.Length != 1)
+        // Check for single drive letter
+        if (trimmed.Length == 1 && char.IsLetter(trimmed[0]))
         {
-            throw new InvalidOperationException($"Failed to mount ISO. Output: {output}");
+            var mountPath = $"{trimmed}:\\";
+            _logService.Log(LogLevel.Success, $"ISO mounted at: {mountPath}");
+            return mountPath;
         }
 
-        var mountPath = $"{driveLetter}:\\";
-        _logService.Log(LogLevel.Success, $"ISO mounted at: {mountPath}");
-        return mountPath;
+        // Multi-line output? Try to find a drive letter in it
+        foreach (var line in output.Split('\n'))
+        {
+            var clean = line.Trim();
+            if (clean.Length == 1 && char.IsLetter(clean[0]))
+            {
+                var mountPath = $"{clean}:\\";
+                _logService.Log(LogLevel.Success, $"ISO mounted at: {mountPath}");
+                return mountPath;
+            }
+        }
+
+        throw new InvalidOperationException($"Mount-DiskImage failed. PowerShell output: {trimmed}");
     }
 
     public async Task UnmountIsoAsync(string isoPath)
