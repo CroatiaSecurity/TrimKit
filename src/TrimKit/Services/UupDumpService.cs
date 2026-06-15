@@ -33,11 +33,14 @@ public class UupDumpService : IUupDumpService
         var response = await _httpClient.GetFromJsonAsync<UupListResponse>(url, JsonOptions, ct);
         var builds = ParseBuilds(response);
 
-        // Filter to retail/stable only (exclude Insider Preview and Preview Update)
+        // Keep only actual OS builds: "Windows XX, version YYY (...)"
+        // These always start with "Windows 1" (10, 11, 12...) followed by ", version"
+        // This excludes: Cumulative Updates, Feature updates to older ver, .NET, Stack Packages, Insider
         builds = builds.Where(b =>
+            b.Title.StartsWith("Windows ", StringComparison.OrdinalIgnoreCase) &&
+            b.Title.Contains(", version ", StringComparison.OrdinalIgnoreCase) &&
             !b.Title.Contains("Insider Preview", StringComparison.OrdinalIgnoreCase) &&
-            !b.Title.Contains("Preview Update", StringComparison.OrdinalIgnoreCase) &&
-            !b.Title.Contains("Update Stack Package", StringComparison.OrdinalIgnoreCase)
+            !b.Title.Contains("Preview Update", StringComparison.OrdinalIgnoreCase)
         ).ToList();
 
         return builds;
@@ -45,62 +48,99 @@ public class UupDumpService : IUupDumpService
 
     public async Task<List<WindowsBuild>> GetLatestBuildsAsync(CancellationToken ct = default)
     {
-        // Fetch latest retail Windows 10 and 11 builds
         _logService.Log(Models.LogLevel.Info, "Fetching latest retail builds...");
 
-        var allBuilds = new List<WindowsBuild>();
+        // Search broadly — the filter in SearchBuildsAsync handles the rest
+        // This catches any current and future Windows version
+        var builds = new List<WindowsBuild>();
 
-        // Windows 11 24H2
-        var w11 = await SearchBuildsAsync("windows 11 26100", ct);
-        allBuilds.AddRange(w11);
+        var result = await SearchBuildsAsync("windows 11", ct);
+        builds.AddRange(result);
 
-        // Windows 11 25H2
-        var w11_25h2 = await SearchBuildsAsync("windows 11 26200", ct);
-        allBuilds.AddRange(w11_25h2);
+        var result10 = await SearchBuildsAsync("windows 10", ct);
+        builds.AddRange(result10);
 
-        // Windows 10 22H2
-        var w10 = await SearchBuildsAsync("windows 10 19045", ct);
-        allBuilds.AddRange(w10);
-
-        return allBuilds.OrderByDescending(b => b.DateAdded).ToList();
+        // Deduplicate by ID
+        return builds
+            .GroupBy(b => b.Id)
+            .Select(g => g.First())
+            .OrderByDescending(b => b.DateAdded)
+            .ToList();
     }
 
     public async Task<List<WindowsEdition>> GetEditionsAsync(string updateId, CancellationToken ct = default)
     {
-        var url = $"{ApiBase}/listlangs.php?id={Uri.EscapeDataString(updateId)}";
-        var response = await _httpClient.GetFromJsonAsync<UupLangsResponse>(url, JsonOptions, ct);
+        // First we need a language to query editions — default to en-us
+        var url = $"{ApiBase}/listeditions.php?id={Uri.EscapeDataString(updateId)}&lang=en-us";
+        var editions = new List<WindowsEdition>();
 
-        if (response?.Response?.LangFancyNames != null)
+        try
         {
-            // The listlangs endpoint returns languages; we need to call listeditions separately
+            var json = await _httpClient.GetStringAsync(url, ct);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("response", out var resp) &&
+                resp.TryGetProperty("editionFancyNames", out var eds) &&
+                eds.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in eds.EnumerateObject())
+                {
+                    editions.Add(new WindowsEdition
+                    {
+                        EditionId = prop.Name,
+                        Name = prop.Value.GetString() ?? prop.Name
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Models.LogLevel.Warning, $"Edition fetch failed: {ex.Message}");
         }
 
-        // UUP dump doesn't have a clean "list editions" endpoint separate from the download page,
-        // so we'll provide common editions based on what's typically available
-        return GetCommonEditions();
+        // Fallback if API didn't return editions
+        if (editions.Count == 0)
+        {
+            editions = GetCommonEditions();
+        }
+
+        _logService.Log(Models.LogLevel.Info, $"Found {editions.Count} edition(s)");
+        return editions;
     }
 
     public async Task<List<WindowsLanguage>> GetLanguagesAsync(string updateId, CancellationToken ct = default)
     {
         var url = $"{ApiBase}/listlangs.php?id={Uri.EscapeDataString(updateId)}";
-        var response = await _httpClient.GetFromJsonAsync<UupLangsResponse>(url, JsonOptions, ct);
-
         var languages = new List<WindowsLanguage>();
-        if (response?.Response?.LangFancyNames.ValueKind == JsonValueKind.Object)
+
+        try
         {
-            foreach (var prop in response.Response.LangFancyNames.EnumerateObject())
+            var json = await _httpClient.GetStringAsync(url, ct);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("response", out var resp) &&
+                resp.TryGetProperty("langFancyNames", out var langs) &&
+                langs.ValueKind == JsonValueKind.Object)
             {
-                languages.Add(new WindowsLanguage
+                foreach (var prop in langs.EnumerateObject())
                 {
-                    LangCode = prop.Name,
-                    Name = prop.Value.GetString() ?? prop.Name
-                });
+                    languages.Add(new WindowsLanguage
+                    {
+                        LangCode = prop.Name,
+                        Name = prop.Value.GetString() ?? prop.Name
+                    });
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(Models.LogLevel.Warning, $"Language fetch failed: {ex.Message}");
         }
 
         if (languages.Count == 0)
         {
-            // Fallback: provide common languages
             languages.Add(new WindowsLanguage { LangCode = "en-us", Name = "English (United States)" });
         }
 
