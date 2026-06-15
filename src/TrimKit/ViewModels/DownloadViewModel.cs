@@ -307,6 +307,17 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenMicrosoftPage()
+    {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "https://www.microsoft.com/software-download/windows11",
+            UseShellExecute = true
+        });
+        StatusText = "Microsoft download page opened in browser";
+    }
+
+    [RelayCommand]
     private void CancelDownload()
     {
         _cts?.Cancel();

@@ -334,10 +334,10 @@
 
                         <!-- Section 2: Microsoft Direct -->
                         <TextBlock Text="Microsoft Official ISO" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <TextBlock Text="Downloads the latest stable public ISO directly from Microsoft servers." 
+                        <TextBlock Text="Opens Microsoft's download page in your browser. Select your language there and download." 
                                    Foreground="#5F6368" FontSize="10" Margin="0,0,0,8" TextWrapping="Wrap"/>
 
-                        <Button Content="Download Official ISO" Command="{Binding DownloadDirectCommand}" 
+                        <Button Content="Open Microsoft Download Page" Command="{Binding OpenMicrosoftPageCommand}" 
                                 Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="12,8"
                                 FontSize="11.5"/>
                     </StackPanel>
