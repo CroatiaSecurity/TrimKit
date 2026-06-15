@@ -214,44 +214,49 @@
             </Border>
 
             <!-- Source / ISO View -->
-            <Grid Grid.Row="1" Margin="30" DataContext="{Binding DownloadViewModel}">
-                <StackPanel VerticalAlignment="Top" MaxWidth="600" HorizontalAlignment="Left">
-                    <TextBlock Text="Get a Windows ISO" Foreground="#FFFFFF" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                    <TextBlock Text="Download an ISO from one of these sources, then use Browse above to load it into TrimKit." 
-                               Foreground="#80868E" FontSize="12" Margin="0,0,0,24" TextWrapping="Wrap"/>
+            <Grid Grid.Row="1" Margin="30,30,30,30" DataContext="{Binding DownloadViewModel}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="650">
+                    <TextBlock Text="Get a Windows ISO" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" 
+                               HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock Text="Download an ISO from one of these sources, then click Browse to load it." 
+                               Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" Margin="0,0,0,30"/>
 
-                    <!-- Row 1 -->
-                    <WrapPanel Margin="0,0,0,8">
+                    <!-- Official -->
+                    <TextBlock Text="Official" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
+                    <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
                         <Button Content="Microsoft (Win11)" Command="{Binding OpenMicrosoftPageCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="Microsoft (Win10)" Command="{Binding OpenMicrosoft10PageCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                    </WrapPanel>
+
+                    <!-- Third-party -->
+                    <TextBlock Text="Third-party mirrors &amp; tools" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
+                    <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
                         <Button Content="UUP dump" Command="{Binding OpenUupDumpCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="Adguard TechBench" Command="{Binding OpenAdguardTechBenchCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="Adguard UUP" Command="{Binding OpenAdguardUupCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="Heidoc" Command="{Binding OpenHeidocCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
-                    </WrapPanel>
-
-                    <!-- Row 2 -->
-                    <WrapPanel Margin="0,0,0,8">
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="OS.click" Command="{Binding OpenOsClickCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="GetMyOS" Command="{Binding OpenGetMyOsCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="Bob Pony" Command="{Binding OpenBobPonyCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                         <Button Content="massgrave" Command="{Binding OpenMassgraveCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
-                        <Button Content="Rufus" Command="{Binding OpenRufusCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
                     </WrapPanel>
 
-                    <TextBlock Text="After downloading, click Browse in the toolbar above to load the ISO or WIM file." 
-                               Foreground="#5F6368" FontSize="11" Margin="0,16,0,0"/>
+                    <!-- USB -->
+                    <TextBlock Text="USB boot tool" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
+                    <WrapPanel HorizontalAlignment="Center">
+                        <Button Content="Rufus" Command="{Binding OpenRufusCommand}" 
+                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                    </WrapPanel>
                 </StackPanel>
             </Grid>
         </Grid>
