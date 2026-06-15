@@ -21,9 +21,20 @@ public class IsoService : IIsoService
     {
         _logService.Log(LogLevel.Info, $"Mounting ISO: {Path.GetFileName(isoPath)}");
 
-        // Use PowerShell to mount the ISO and get the drive letter
+        // Mount-DiskImage requires the file to be on an NTFS volume.
+        // If the ISO is on exFAT/FAT32 (e.g. Ventoy USB), copy to temp first.
+        var actualPath = isoPath;
+        var driveInfo = new DriveInfo(Path.GetPathRoot(isoPath)!);
+        if (!driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase))
+        {
+            _logService.Log(LogLevel.Info, $"ISO is on {driveInfo.DriveFormat} drive — copying to temp for mounting...");
+            var tempPath = Path.Combine(Path.GetTempPath(), "TrimKit_" + Path.GetFileName(isoPath));
+            File.Copy(isoPath, tempPath, overwrite: true);
+            actualPath = tempPath;
+        }
+
         var script = $@"
-            $result = Mount-DiskImage -ImagePath '{isoPath.Replace("'", "''")}' -PassThru
+            $result = Mount-DiskImage -ImagePath '{actualPath.Replace("'", "''")}' -PassThru
             $volume = $result | Get-Volume
             $volume.DriveLetter
         ";
