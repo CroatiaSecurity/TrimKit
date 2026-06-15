@@ -11,6 +11,7 @@ public interface IWindowsServiceManager
     Task<List<WindowsServiceInfo>> GetServicesAsync(string mountPath);
     Task SetServiceStartTypeAsync(string mountPath, string serviceName, ServiceStartType startType);
     Task RemoveServiceAsync(string mountPath, string serviceName);
+    Task ConfigureServicesAsync(string mountPath, List<(string serviceName, ServiceStartType startType)> changes);
 }
 
 public class WindowsServiceInfo

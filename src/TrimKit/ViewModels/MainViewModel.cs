@@ -50,6 +50,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _bootMountPath = string.Empty;
     [ObservableProperty] private bool _isInstallMounted;
     [ObservableProperty] private bool _isBootMounted;
+    [ObservableProperty] private bool _forceUnsignedDrivers;
 
     // Preset-loaded customization (wallpapers, service changes from WinReducer)
     private WallpaperPreset? _loadedWallpapers;
@@ -769,6 +770,11 @@ public partial class MainViewModel : ObservableObject
             // Remove selected packages from install.wim
             foreach (var pkg in Packages.Where(p => p.IsSelected).ToList())
             {
+                if (SafetyGuard.IsAbsolutelyCritical(pkg.PackageName, ComponentType.Package))
+                {
+                    _logService.Log(LogLevel.Warning, $"Protected package removal blocked: {pkg.DisplayName}");
+                    continue;
+                }
                 StatusText = $"[install.wim] Removing: {pkg.DisplayName}";
                 try
                 {
@@ -805,18 +811,19 @@ public partial class MainViewModel : ObservableObject
             }
 
             // Apply registry tweaks to install.wim
-            foreach (var tweak in RegistryTweaks.Where(r => r.IsSelected))
+            var selectedTweaks = RegistryTweaks.Where(r => r.IsSelected).ToList();
+            if (selectedTweaks.Count > 0)
             {
-                StatusText = $"[install.wim] Applying tweak: {tweak.Name}";
+                StatusText = "[install.wim] Applying registry tweaks...";
                 try
                 {
-                    await _registryService.ApplyTweakAsync(installMountTarget, tweak);
+                    await _registryService.ApplyTweaksAsync(installMountTarget, selectedTweaks);
                 }
                 catch (Exception ex)
                 {
-                    _logService.Log(LogLevel.Warning, $"Could not apply {tweak.Name}: {ex.Message}");
+                    _logService.Log(LogLevel.Warning, $"Could not apply registry tweaks: {ex.Message}");
                 }
-                currentOp++;
+                currentOp += selectedTweaks.Count;
                 ProgressValue = (int)((double)currentOp / totalOps * 100);
             }
 
@@ -826,7 +833,7 @@ public partial class MainViewModel : ObservableObject
                 StatusText = $"[install.wim] Adding drivers from: {driverPath}";
                 try
                 {
-                    await _dismService.AddDriverAsync(installMountTarget, driverPath);
+                    await _dismService.AddDriverAsync(installMountTarget, driverPath, forceUnsigned: ForceUnsignedDrivers);
                 }
                 catch (Exception ex)
                 {
@@ -864,19 +871,14 @@ public partial class MainViewModel : ObservableObject
             if (modifiedServices.Count > 0)
             {
                 StatusText = $"[install.wim] Configuring {modifiedServices.Count} service(s)...";
-                foreach (var svc in modifiedServices)
+                var changes = modifiedServices.Select(svc => (svc.ServiceName, svc.StartType)).ToList();
+                try
                 {
-                    try
-                    {
-                        if (svc.StartType == ServiceStartType.Remove)
-                            await _serviceManager.RemoveServiceAsync(installMountTarget, svc.ServiceName);
-                        else
-                            await _serviceManager.SetServiceStartTypeAsync(installMountTarget, svc.ServiceName, svc.StartType);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Warning, $"Service {svc.ServiceName}: {ex.Message}");
-                    }
+                    await _serviceManager.ConfigureServicesAsync(installMountTarget, changes);
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Service configuration failed: {ex.Message}");
                 }
                 _logService.Log(LogLevel.Success, $"Configured {modifiedServices.Count} service(s)");
             }
@@ -907,12 +909,12 @@ public partial class MainViewModel : ObservableObject
             // Execute NTLite/WinReducer component map removals (file-level, service disable)
             // This handles preset items that don't map to DISM operations (fonts by NTLite name, languages, drivers, etc.)
             var allPresetRemoveItems = new List<PresetComponent>();
-            allPresetRemoveItems.AddRange(ProvisionedApps.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
-            allPresetRemoveItems.AddRange(Capabilities.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
-            allPresetRemoveItems.AddRange(Fonts.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
-            allPresetRemoveItems.AddRange(KeyboardLayouts.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
-            allPresetRemoveItems.AddRange(Languages.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
-            allPresetRemoveItems.AddRange(InboxDrivers.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(ProvisionedApps.Where(c => c.IsSelected && !c.IsProtected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(Capabilities.Where(c => c.IsSelected && !c.IsProtected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(Fonts.Where(c => c.IsSelected && !c.IsProtected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(KeyboardLayouts.Where(c => c.IsSelected && !c.IsProtected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(Languages.Where(c => c.IsSelected && !c.IsProtected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(InboxDrivers.Where(c => c.IsSelected && !c.IsProtected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
 
             var resolvedPlan = NtLiteComponentMap.ResolvePreset(allPresetRemoveItems, installMountTarget);
             if (resolvedPlan.TotalActions > 0)
@@ -926,7 +928,19 @@ public partial class MainViewModel : ObservableObject
                 // Delete files
                 foreach (var file in resolvedPlan.FilesToDelete)
                 {
-                    try { if (File.Exists(file)) File.Delete(file); } catch { }
+                    try
+                    {
+                        if (File.Exists(file))
+                        {
+                            if (!SafetyGuard.IsSafeToDeleteFromDisk(file))
+                            {
+                                _logService.Log(LogLevel.Warning, $"Preset file deletion blocked (protected): {file}");
+                                continue;
+                            }
+                            File.Delete(file);
+                        }
+                    }
+                    catch { }
                 }
 
                 // Delete directories (supports wildcard patterns like Microsoft.Xbox*)
@@ -941,11 +955,23 @@ public partial class MainViewModel : ObservableObject
                             if (Directory.Exists(parent))
                             {
                                 foreach (var d in Directory.GetDirectories(parent, pattern))
+                                {
+                                    if (!SafetyGuard.IsSafeToDeleteFromDisk(d))
+                                    {
+                                        _logService.Log(LogLevel.Warning, $"Preset directory deletion blocked (protected): {d}");
+                                        continue;
+                                    }
                                     Directory.Delete(d, true);
+                                }
                             }
                         }
                         else if (Directory.Exists(dir))
                         {
+                            if (!SafetyGuard.IsSafeToDeleteFromDisk(dir))
+                            {
+                                _logService.Log(LogLevel.Warning, $"Preset directory deletion blocked (protected): {dir}");
+                                continue;
+                            }
                             Directory.Delete(dir, true);
                         }
                     }
@@ -1009,28 +1035,27 @@ public partial class MainViewModel : ObservableObject
             if (_loadedServiceChanges.Count > 0)
             {
                 StatusText = $"[install.wim] Configuring {_loadedServiceChanges.Count} service(s) from preset...";
+                var presetChanges = new List<(string serviceName, ServiceStartType startType)>();
                 foreach (var svc in _loadedServiceChanges)
                 {
-                    try
+                    var startType = svc.StartType switch
                     {
-                        var startType = svc.StartType switch
-                        {
-                            2 => ServiceStartType.Automatic,
-                            3 => ServiceStartType.Manual,
-                            4 => ServiceStartType.Disabled,
-                            5 => ServiceStartType.Remove,
-                            _ => ServiceStartType.Disabled
-                        };
+                        2 => ServiceStartType.Automatic,
+                        3 => ServiceStartType.Manual,
+                        4 => ServiceStartType.Disabled,
+                        5 => ServiceStartType.Remove,
+                        _ => ServiceStartType.Disabled
+                    };
+                    presetChanges.Add((svc.ServiceName, startType));
+                }
 
-                        if (startType == ServiceStartType.Remove)
-                            await _serviceManager.RemoveServiceAsync(installMountTarget, svc.ServiceName);
-                        else
-                            await _serviceManager.SetServiceStartTypeAsync(installMountTarget, svc.ServiceName, startType);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logService.Log(LogLevel.Warning, $"Service {svc.ServiceName}: {ex.Message}");
-                    }
+                try
+                {
+                    await _serviceManager.ConfigureServicesAsync(installMountTarget, presetChanges);
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Preset service configuration failed: {ex.Message}");
                 }
                 _logService.Log(LogLevel.Success, $"Applied {_loadedServiceChanges.Count} service change(s) from preset");
             }
@@ -1119,19 +1144,20 @@ public partial class MainViewModel : ObservableObject
                 }
 
                 // Apply registry tweaks to boot.wim (only applicable ones)
-                foreach (var tweak in RegistryTweaks.Where(r => r.IsSelected))
+                var bootTweaks = RegistryTweaks.Where(r => r.IsSelected).ToList();
+                if (bootTweaks.Count > 0)
                 {
-                    StatusText = $"[boot.wim] Applying tweak: {tweak.Name}";
+                    StatusText = "[boot.wim] Applying registry tweaks...";
                     try
                     {
-                        await _registryService.ApplyTweakAsync(BootMountPath, tweak);
+                        await _registryService.ApplyTweaksAsync(BootMountPath, bootTweaks);
                     }
                     catch (Exception)
                     {
                         // Many tweaks won't apply to boot.wim — that's expected
-                        _logService.Log(LogLevel.Info, $"[boot.wim] Skipped tweak {tweak.Name} (not applicable)");
+                        _logService.Log(LogLevel.Info, "[boot.wim] Skipped or failed some registry tweaks (not applicable)");
                     }
-                    currentOp++;
+                    currentOp += bootTweaks.Count;
                     ProgressValue = (int)((double)currentOp / totalOps * 100);
                 }
 
@@ -1141,7 +1167,7 @@ public partial class MainViewModel : ObservableObject
                     StatusText = $"[boot.wim] Adding drivers from: {driverPath}";
                     try
                     {
-                        await _dismService.AddDriverAsync(BootMountPath, driverPath);
+                        await _dismService.AddDriverAsync(BootMountPath, driverPath, forceUnsigned: ForceUnsignedDrivers);
                     }
                     catch (Exception ex)
                     {
@@ -1514,7 +1540,7 @@ public partial class MainViewModel : ObservableObject
             if (keepIds.Contains(app.Id))
                 app.IsSelected = false;
             else if (removeIds.Contains(app.Id) || removeNames.Contains(app.DisplayName))
-                app.IsSelected = true;
+                app.IsSelected = !app.IsProtected;
         }
 
         // Apply to Capabilities
@@ -1523,35 +1549,35 @@ public partial class MainViewModel : ObservableObject
             if (keepIds.Contains(cap.Id))
                 cap.IsSelected = false;
             else if (removeIds.Contains(cap.Id) || removeNames.Contains(cap.DisplayName))
-                cap.IsSelected = true;
+                cap.IsSelected = !cap.IsProtected;
         }
 
         // Apply to Fonts
         foreach (var font in Fonts)
         {
             if (removeIds.Contains(font.Id) || removeNames.Contains(font.DisplayName))
-                font.IsSelected = !font.IsProtected; // Don't select protected fonts
+                font.IsSelected = !font.IsProtected;
         }
 
         // Apply to Keyboard Layouts
         foreach (var kbd in KeyboardLayouts)
         {
             if (removeIds.Contains(kbd.Id) || removeNames.Contains(kbd.DisplayName))
-                kbd.IsSelected = true;
+                kbd.IsSelected = !kbd.IsProtected;
         }
 
         // Apply to Languages
         foreach (var lang in Languages)
         {
             if (removeIds.Contains(lang.Id) || removeNames.Contains(lang.DisplayName))
-                lang.IsSelected = true;
+                lang.IsSelected = !lang.IsProtected;
         }
 
         // Apply to Inbox Drivers
         foreach (var drv in InboxDrivers)
         {
             if (removeIds.Contains(drv.Id) || removeNames.Contains(drv.DisplayName))
-                drv.IsSelected = true;
+                drv.IsSelected = !drv.IsProtected;
         }
 
         // Apply feature changes
@@ -1799,19 +1825,51 @@ public partial class MainViewModel : ObservableObject
             // Unmount boot.wim
             if (IsBootMounted && !string.IsNullOrEmpty(BootMountPath))
             {
-                try
+                bool unmountSuccess = false;
+                while (!unmountSuccess)
                 {
-                    StatusText = commitChanges ? "Cleanup: saving boot.wim..." : "Cleanup: discarding boot.wim...";
-                    await _dismService.UnmountImageAsync(BootMountPath, commitChanges);
-                    IsBootMounted = false;
-                    _logService.Log(LogLevel.Success, $"boot.wim unmounted ({(commitChanges ? "saved" : "discarded")})");
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Warning, $"boot.wim unmount failed: {ex.Message}");
-                    // Force discard on failure
-                    try { await _dismService.UnmountImageAsync(BootMountPath, false); } catch { }
-                    IsBootMounted = false;
+                    try
+                    {
+                        StatusText = commitChanges ? "Cleanup: saving boot.wim..." : "Cleanup: discarding boot.wim...";
+                        await _dismService.UnmountImageAsync(BootMountPath, commitChanges);
+                        IsBootMounted = false;
+                        _logService.Log(LogLevel.Success, $"boot.wim unmounted ({(commitChanges ? "saved" : "discarded")})");
+                        unmountSuccess = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"boot.wim unmount failed: {ex.Message}");
+                        if (!commitChanges)
+                        {
+                            IsBootMounted = false;
+                            break;
+                        }
+
+                        var result = System.Windows.MessageBox.Show(
+                            $"Failed to save and unmount boot.wim:\n\n{ex.Message}\n\n" +
+                            "The directory might be locked by Windows Explorer, an open file, or antivirus.\n\n" +
+                            "• Click Yes to RETRY unmounting and saving changes.\n" +
+                            "• Click No to DISCARD changes and unmount.\n" +
+                            "• Click Cancel to KEEP the image mounted so you can resolve the lock manually.",
+                            "TrimKit - Unmount Error (boot.wim)",
+                            System.Windows.MessageBoxButton.YesNoCancel,
+                            System.Windows.MessageBoxImage.Warning);
+
+                        if (result == System.Windows.MessageBoxResult.Yes)
+                        {
+                            continue;
+                        }
+                        else if (result == System.Windows.MessageBoxResult.No)
+                        {
+                            try { await _dismService.UnmountImageAsync(BootMountPath, false); } catch { }
+                            IsBootMounted = false;
+                            break;
+                        }
+                        else
+                        {
+                            throw; // Cancel cleanup
+                        }
+                    }
                 }
             }
 
@@ -1819,20 +1877,54 @@ public partial class MainViewModel : ObservableObject
             var installMount = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
             if (IsMounted && !string.IsNullOrEmpty(installMount))
             {
-                try
+                bool unmountSuccess = false;
+                while (!unmountSuccess)
                 {
-                    StatusText = commitChanges ? "Cleanup: saving install.wim..." : "Cleanup: discarding install.wim...";
-                    await _dismService.UnmountImageAsync(installMount, commitChanges);
-                    IsInstallMounted = false;
-                    IsMounted = false;
-                    _logService.Log(LogLevel.Success, $"install.wim unmounted ({(commitChanges ? "saved" : "discarded")})");
-                }
-                catch (Exception ex)
-                {
-                    _logService.Log(LogLevel.Warning, $"install.wim unmount failed: {ex.Message}");
-                    try { await _dismService.UnmountImageAsync(installMount, false); } catch { }
-                    IsInstallMounted = false;
-                    IsMounted = false;
+                    try
+                    {
+                        StatusText = commitChanges ? "Cleanup: saving install.wim..." : "Cleanup: discarding install.wim...";
+                        await _dismService.UnmountImageAsync(installMount, commitChanges);
+                        IsInstallMounted = false;
+                        IsMounted = false;
+                        _logService.Log(LogLevel.Success, $"install.wim unmounted ({(commitChanges ? "saved" : "discarded")})");
+                        unmountSuccess = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"install.wim unmount failed: {ex.Message}");
+                        if (!commitChanges)
+                        {
+                            IsInstallMounted = false;
+                            IsMounted = false;
+                            break;
+                        }
+
+                        var result = System.Windows.MessageBox.Show(
+                            $"Failed to save and unmount install.wim:\n\n{ex.Message}\n\n" +
+                            "The directory might be locked by Windows Explorer, an open file, or antivirus.\n\n" +
+                            "• Click Yes to RETRY unmounting and saving changes.\n" +
+                            "• Click No to DISCARD changes and unmount.\n" +
+                            "• Click Cancel to KEEP the image mounted so you can resolve the lock manually.",
+                            "TrimKit - Unmount Error (install.wim)",
+                            System.Windows.MessageBoxButton.YesNoCancel,
+                            System.Windows.MessageBoxImage.Warning);
+
+                        if (result == System.Windows.MessageBoxResult.Yes)
+                        {
+                            continue;
+                        }
+                        else if (result == System.Windows.MessageBoxResult.No)
+                        {
+                            try { await _dismService.UnmountImageAsync(installMount, false); } catch { }
+                            IsInstallMounted = false;
+                            IsMounted = false;
+                            break;
+                        }
+                        else
+                        {
+                            throw; // Cancel cleanup
+                        }
+                    }
                 }
             }
 

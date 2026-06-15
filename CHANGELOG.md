@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.0.6 — 2026-06-15
+
+### Added
+- **Interactive WIM Unmount Recovery** — Refactored cleanup logic to catch save and unmount failures, offering interactive Retry, Discard, or Cancel options to protect customized images from locks.
+- **Batch Update Integration** — Group updates by SSU and cumulative/other updates, integrating them in batches to reduce integration time significantly.
+- **Unsigned Driver Option** / **Force Unsigned Drivers Checkbox** — Added a checkbox in the Drivers tab to append the `/ForceUnsigned` parameter to DISM.
+- **Secure Tooling** — Disabled runtime downloading of unverified `oscdimg.exe` binaries, securely falling back to native UDF creation using PowerShell/IMAPI2.
+- **Baseline en-US & Critical Font Safeguards** — Protected the baseline `en-US` language packs, capabilities, and critical system fonts/cache (Segoe, Arial, Marlett, Symbol, and the `StaticCache.dat` font cache) from direct or preset-based removal.
+
+### Fixed
+- **Cyrillic Typo in Component Removal** — Resolved search pattern typo from `"kbд*.dll"` to Latin `"kbd*.dll"` to correctly find all keyboard layouts.
+- **CA2024 Blocking Warning** in `UupDumpService` replaced with asynchronous stream reading.
+- **Global /English Flag** — Prepend `/English` globally to all DISM process arguments to ensure output parsing remains locale-independent regardless of the host system.
+
 ## 0.0.5 — 2026-06-15
 
 ### Added

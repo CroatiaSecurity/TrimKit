@@ -176,11 +176,12 @@ public partial class DismService : IDismService
         _logService.Log(LogLevel.Success, $"Disabled: {featureName}");
     }
 
-    public async Task AddDriverAsync(string mountPath, string driverPath, bool recurse = true)
+    public async Task AddDriverAsync(string mountPath, string driverPath, bool recurse = true, bool forceUnsigned = false)
     {
         var recurseFlag = recurse ? "/Recurse" : "";
-        _logService.Log(LogLevel.Info, $"Adding driver(s) from: {driverPath}");
-        await RunDismAsync($"/Image:\"{mountPath}\" /Add-Driver /Driver:\"{driverPath}\" {recurseFlag}");
+        var unsignedFlag = forceUnsigned ? "/ForceUnsigned" : "";
+        _logService.Log(LogLevel.Info, $"Adding driver(s) from: {driverPath}{(forceUnsigned ? " (forcing unsigned)" : "")}");
+        await RunDismAsync($"/Image:\"{mountPath}\" /Add-Driver /Driver:\"{driverPath}\" {recurseFlag} {unsignedFlag}");
         _logService.Log(LogLevel.Success, "Driver(s) added successfully");
     }
 
@@ -211,7 +212,7 @@ public partial class DismService : IDismService
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

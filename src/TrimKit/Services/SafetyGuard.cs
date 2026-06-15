@@ -205,16 +205,98 @@ public static class SafetyGuard
         "servicing", "servicingstack",
     };
 
-    /// <summary>
-    /// Checks if a component is absolutely critical (never removable even if user unchecks all protections).
-    /// </summary>
     public static bool IsAbsolutelyCritical(string id, ComponentType type)
     {
+        if (type == ComponentType.Language)
+        {
+            // Protect en-US baseline language
+            if (id.Contains("en-US", StringComparison.OrdinalIgnoreCase) || id.Contains("en-us", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        if (type == ComponentType.Capability)
+        {
+            // Protect en-US basic language capability
+            if (id.Contains("Language.Basic", StringComparison.OrdinalIgnoreCase) && 
+                (id.Contains("en-US", StringComparison.OrdinalIgnoreCase) || id.Contains("en-us", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        if (type == ComponentType.Font)
+        {
+            // Protect critical fonts
+            var lower = id.ToLowerInvariant();
+            if (lower.Contains("segoe") || lower.Contains("segui") ||
+                lower == "arial.ttf" || lower.Contains("marlett") ||
+                lower.Contains("symbol"))
+            {
+                return true;
+            }
+        }
+
         if (type == ComponentType.Package || type == ComponentType.OptionalFeature)
         {
-            return AbsolutelyCritical.Any(c => id.Contains(c, StringComparison.OrdinalIgnoreCase));
+            if (AbsolutelyCritical.Any(c => id.Contains(c, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            // Also block any language pack package containing en-US
+            if ((id.Contains("LanguagePack", StringComparison.OrdinalIgnoreCase) || id.Contains("LanguageFeatures", StringComparison.OrdinalIgnoreCase)) &&
+                (id.Contains("en-US", StringComparison.OrdinalIgnoreCase) || id.Contains("en-us", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Checks if a filesystem path (file or directory) is safe to delete.
+    /// Returns false if it contains critical system components like en-US language files,
+    /// the font cache, or protected system fonts.
+    /// </summary>
+    public static bool IsSafeToDeleteFromDisk(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+
+        var lowerPath = path.ToLowerInvariant();
+
+        // 1. Never delete the Fonts directory itself or any protected system fonts
+        if (lowerPath.Contains(@"windows\fonts"))
+        {
+            if (lowerPath.EndsWith(@"windows\fonts") || lowerPath.EndsWith(@"windows\fonts\"))
+                return false;
+
+            var fileName = System.IO.Path.GetFileName(lowerPath);
+            // Protect font cache
+            if (fileName == "staticcache.dat")
+                return false;
+
+            // Protect critical fonts
+            if (fileName.Contains("segoe") || fileName.Contains("segui") ||
+                fileName == "arial.ttf" || fileName.Contains("marlett") ||
+                fileName.Contains("symbol"))
+            {
+                return false;
+            }
+        }
+
+        // 2. Never delete any en-US language or localization resources/folders
+        if (lowerPath.Contains(@"\en-us") || lowerPath.Contains(@"/en-us") || 
+            lowerPath.Contains("~en-us") || lowerPath.Contains("_en-us"))
+        {
+            return false;
+        }
+
+        // 3. Prevent deletion of critical Windows setup/system folders just in case
+        if (lowerPath.EndsWith(@"windows\system32") || lowerPath.EndsWith(@"windows\system32\") ||
+            lowerPath.EndsWith(@"windows\syswow64") || lowerPath.EndsWith(@"windows\syswow64\"))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>

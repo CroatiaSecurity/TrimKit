@@ -265,7 +265,7 @@ public partial class WinSxsCleanupService : IWinSxsCleanupService
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

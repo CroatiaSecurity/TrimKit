@@ -177,6 +177,52 @@ public class WindowsServiceManager : IWindowsServiceManager
         }
     }
 
+    public async Task ConfigureServicesAsync(string mountPath, List<(string serviceName, ServiceStartType startType)> changes)
+    {
+        if (changes == null || changes.Count == 0) return;
+
+        var systemHive = Path.Combine(mountPath, @"Windows\System32\config\SYSTEM");
+        var tempHive = Path.Combine(Path.GetTempPath(), $"TrimKit_SVCMULTI_{Guid.NewGuid():N}");
+        const string mountKey = "HKLM\\WW_SVC_MULTI";
+
+        try
+        {
+            _logService.Log(LogLevel.Info, $"Performing bulk service configuration for {changes.Count} service(s)...");
+            File.Copy(systemHive, tempHive, overwrite: true);
+            await RunRegAsync($"LOAD \"{mountKey}\" \"{tempHive}\"");
+
+            foreach (var change in changes)
+            {
+                try
+                {
+                    if (change.startType == ServiceStartType.Remove)
+                    {
+                        await RunRegAsync($"DELETE \"{mountKey}\\ControlSet001\\Services\\{change.serviceName}\" /f");
+                        _logService.Log(LogLevel.Success, $"Removed service: {change.serviceName}");
+                    }
+                    else
+                    {
+                        await RunRegAsync($"ADD \"{mountKey}\\ControlSet001\\Services\\{change.serviceName}\" /v Start /t REG_DWORD /d {(int)change.startType} /f");
+                        _logService.Log(LogLevel.Success, $"Set {change.serviceName} → {change.startType}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Failed to configure service {change.serviceName}: {ex.Message}");
+                }
+            }
+        }
+        finally
+        {
+            await Task.Delay(200);
+            try { await RunRegAsync($"UNLOAD \"{mountKey}\""); } catch { }
+            await Task.Delay(200);
+            // Copy modified hive back
+            try { File.Copy(tempHive, systemHive, overwrite: true); } catch { }
+            try { File.Delete(tempHive); } catch { }
+        }
+    }
+
     private static async Task<string> RunRegAsync(string arguments)
     {
         var psi = new ProcessStartInfo

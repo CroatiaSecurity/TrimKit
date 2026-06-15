@@ -46,6 +46,66 @@ public class RegistryService : IRegistryService
         }
     }
 
+    public async Task ApplyTweaksAsync(string mountPath, List<RegistryTweak> tweaks)
+    {
+        if (tweaks == null || tweaks.Count == 0) return;
+
+        var groups = tweaks.GroupBy(t => t.HivePath.ToUpperInvariant());
+
+        foreach (var group in groups)
+        {
+            var hiveType = group.Key;
+            var (hivePath, mountKey) = GetHiveInfo(mountPath, hiveType);
+
+            if (!File.Exists(hivePath))
+            {
+                _logService.Log(LogLevel.Warning, $"Hive file not found for category {hiveType}: {hivePath}");
+                continue;
+            }
+
+            try
+            {
+                await LoadHiveAsync(hivePath, mountKey);
+
+                foreach (var tweak in group)
+                {
+                    try
+                    {
+                        var fullKeyPath = $"{mountKey}\\{tweak.KeyPath}";
+                        var typeFlag = tweak.ValueType switch
+                        {
+                            RegistryValueType.DWord => "REG_DWORD",
+                            RegistryValueType.QWord => "REG_QWORD",
+                            RegistryValueType.String => "REG_SZ",
+                            RegistryValueType.ExpandString => "REG_EXPAND_SZ",
+                            RegistryValueType.MultiString => "REG_MULTI_SZ",
+                            RegistryValueType.Binary => "REG_BINARY",
+                            _ => "REG_SZ"
+                        };
+
+                        var valueStr = tweak.Value?.ToString() ?? "";
+                        var args = $"ADD \"{fullKeyPath}\" /v \"{tweak.ValueName}\" /t {typeFlag} /d \"{valueStr}\" /f";
+
+                        await RunRegAsync(args);
+                        _logService.Log(LogLevel.Success, $"Applied tweak: {tweak.Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Failed to apply tweak {tweak.Name}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Error, $"Failed to process hive {hiveType}: {ex.Message}");
+            }
+            finally
+            {
+                await UnloadHiveAsync(mountKey);
+            }
+        }
+    }
+
     public async Task LoadHiveAsync(string hivePath, string mountKey)
     {
         await RunRegAsync($"LOAD \"{mountKey}\" \"{hivePath}\"");

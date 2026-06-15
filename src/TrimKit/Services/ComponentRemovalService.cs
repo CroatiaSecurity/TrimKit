@@ -64,7 +64,8 @@ public partial class ComponentRemovalService : IComponentRemovalService
                     Id = id,
                     DisplayName = SimplifyCapabilityName(id),
                     Category = CategorizeCapability(id),
-                    Type = ComponentType.Capability
+                    Type = ComponentType.Capability,
+                    IsProtected = SafetyGuard.IsAbsolutelyCritical(id, ComponentType.Capability)
                 });
             }
         }
@@ -124,7 +125,7 @@ public partial class ComponentRemovalService : IComponentRemovalService
                     Category = "Fonts",
                     Type = ComponentType.Font,
                     Size = info.Length,
-                    IsProtected = IsProtectedFont(info.Name)
+                    IsProtected = SafetyGuard.IsAbsolutelyCritical(info.Name, ComponentType.Font) || IsProtectedFont(info.Name)
                 });
             }
         }
@@ -140,8 +141,7 @@ public partial class ComponentRemovalService : IComponentRemovalService
 
         if (Directory.Exists(kbdDir))
         {
-            foreach (var file in Directory.GetFiles(kbdDir, "kbд*.dll")
-                .Concat(Directory.GetFiles(kbdDir, "kbd*.dll")))
+            foreach (var file in Directory.GetFiles(kbdDir, "kbd*.dll"))
             {
                 var name = Path.GetFileNameWithoutExtension(file);
                 layouts.Add(new RemovableComponent
@@ -179,7 +179,8 @@ public partial class ComponentRemovalService : IComponentRemovalService
                     Id = tag,
                     DisplayName = tag,
                     Category = "Languages",
-                    Type = ComponentType.Language
+                    Type = ComponentType.Language,
+                    IsProtected = SafetyGuard.IsAbsolutelyCritical(tag, ComponentType.Language)
                 });
             }
         }
@@ -247,6 +248,11 @@ public partial class ComponentRemovalService : IComponentRemovalService
         var fontPath = Path.Combine(mountPath, @"Windows\Fonts", fontFileName);
         if (File.Exists(fontPath))
         {
+            if (!SafetyGuard.IsSafeToDeleteFromDisk(fontPath))
+            {
+                _logService.Log(LogLevel.Warning, $"Protected font file delete blocked: {fontFileName}");
+                return Task.CompletedTask;
+            }
             File.Delete(fontPath);
             _logService.Log(LogLevel.Success, $"Removed font: {fontFileName}");
         }
@@ -274,6 +280,12 @@ public partial class ComponentRemovalService : IComponentRemovalService
 
     public async Task RemoveLanguageAsync(string mountPath, string languageTag)
     {
+        if (languageTag.Equals("en-US", StringComparison.OrdinalIgnoreCase) || languageTag.Equals("en-us", StringComparison.OrdinalIgnoreCase))
+        {
+            _logService.Log(LogLevel.Warning, "Protected language pack en-US removal blocked");
+            return;
+        }
+
         // Try DISM first (for full language packs)
         try
         {
@@ -284,7 +296,14 @@ public partial class ComponentRemovalService : IComponentRemovalService
             // Fall back to removing MUI directory
             var muiDir = Path.Combine(mountPath, @"Windows\System32", languageTag);
             if (Directory.Exists(muiDir))
+            {
+                if (!SafetyGuard.IsSafeToDeleteFromDisk(muiDir))
+                {
+                    _logService.Log(LogLevel.Warning, $"Protected language directory delete blocked: {languageTag}");
+                    return;
+                }
                 Directory.Delete(muiDir, true);
+            }
         }
 
         _logService.Log(LogLevel.Success, $"Removed language: {languageTag}");
@@ -520,7 +539,7 @@ public partial class ComponentRemovalService : IComponentRemovalService
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

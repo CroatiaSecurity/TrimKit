@@ -129,27 +129,73 @@ public partial class ImageToolsService : IImageToolsService
         _logService.Log(LogLevel.Info, $"Integrating {updates.Count} update(s)...");
         progress?.Report((5, $"Found {updates.Count} update(s)"));
 
-        // Sort: SSU first, then LCU, then others
         var sorted = updates
             .OrderBy(u => u.Contains("SSU", StringComparison.OrdinalIgnoreCase) ? 0 :
-                         u.Contains("LCU", StringComparison.OrdinalIgnoreCase) ? 1 : 2)
+                          u.Contains("LCU", StringComparison.OrdinalIgnoreCase) ? 1 : 2)
             .ToList();
 
-        for (int i = 0; i < sorted.Count; i++)
-        {
-            var update = sorted[i];
-            var fileName = Path.GetFileName(update);
-            var pct = 5 + (int)((i + 1.0) / sorted.Count * 90);
-            progress?.Report((pct, $"[{i + 1}/{sorted.Count}] {fileName}"));
+        var ssus = sorted.Where(u => u.Contains("SSU", StringComparison.OrdinalIgnoreCase)).ToList();
+        var others = sorted.Where(u => !u.Contains("SSU", StringComparison.OrdinalIgnoreCase)).ToList();
 
+        // Integrate SSUs
+        if (ssus.Count > 0)
+        {
+            progress?.Report((10, $"Integrating {ssus.Count} Servicing Stack Update(s) in batch..."));
             try
             {
-                await RunDismAsync($"/Image:\"{mountPath}\" /Add-Package /PackagePath:\"{update}\"");
-                _logService.Log(LogLevel.Success, $"Integrated: {fileName}");
+                var packagePaths = string.Join(" ", ssus.Select(s => $"/PackagePath:\"{s}\""));
+                await RunDismAsync($"/Image:\"{mountPath}\" /Add-Package {packagePaths}");
+                _logService.Log(LogLevel.Success, $"Integrated {ssus.Count} Servicing Stack Update(s) in batch");
             }
             catch (Exception ex)
             {
-                _logService.Log(LogLevel.Warning, $"Skipped {fileName}: {ex.Message}");
+                _logService.Log(LogLevel.Warning, $"SSU Batch integration failed: {ex.Message}. Falling back to sequential integration...");
+                for (int i = 0; i < ssus.Count; i++)
+                {
+                    var update = ssus[i];
+                    var fileName = Path.GetFileName(update);
+                    progress?.Report((10 + (int)((i + 1.0) / ssus.Count * 30), $"Integrating SSU: {fileName}"));
+                    try
+                    {
+                        await RunDismAsync($"/Image:\"{mountPath}\" /Add-Package /PackagePath:\"{update}\"");
+                        _logService.Log(LogLevel.Success, $"Integrated: {fileName}");
+                    }
+                    catch (Exception iex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Failed SSU {fileName}: {iex.Message}");
+                    }
+                }
+            }
+        }
+
+        // Integrate Cumulative and other updates
+        if (others.Count > 0)
+        {
+            progress?.Report((50, $"Integrating {others.Count} Cumulative/other Update(s) in batch..."));
+            try
+            {
+                var packagePaths = string.Join(" ", others.Select(o => $"/PackagePath:\"{o}\""));
+                await RunDismAsync($"/Image:\"{mountPath}\" /Add-Package {packagePaths}");
+                _logService.Log(LogLevel.Success, $"Integrated {others.Count} Cumulative/other Update(s) in batch");
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"Cumulative/other Batch integration failed: {ex.Message}. Falling back to sequential integration...");
+                for (int i = 0; i < others.Count; i++)
+                {
+                    var update = others[i];
+                    var fileName = Path.GetFileName(update);
+                    progress?.Report((50 + (int)((i + 1.0) / others.Count * 40), $"Integrating: {fileName}"));
+                    try
+                    {
+                        await RunDismAsync($"/Image:\"{mountPath}\" /Add-Package /PackagePath:\"{update}\"");
+                        _logService.Log(LogLevel.Success, $"Integrated: {fileName}");
+                    }
+                    catch (Exception iex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Failed update {fileName}: {iex.Message}");
+                    }
+                }
             }
         }
 
@@ -310,46 +356,10 @@ public partial class ImageToolsService : IImageToolsService
     /// Downloads oscdimg.exe to the app's tools directory.
     /// Uses a known reliable source (Windows ADK redistributable component).
     /// </summary>
-    private async Task<string?> DownloadOscdimgAsync()
+    private Task<string?> DownloadOscdimgAsync()
     {
-        var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tools");
-        Directory.CreateDirectory(toolsDir);
-        var oscdimgPath = Path.Combine(toolsDir, "oscdimg.exe");
-
-        if (File.Exists(oscdimgPath))
-            return oscdimgPath;
-
-        // Try downloading from GitHub mirrors that host ADK tools
-        var urls = new[]
-        {
-            "https://github.com/nicehash/oscdimg/raw/master/oscdimg.exe",
-            "https://raw.githubusercontent.com/nicehash/oscdimg/master/oscdimg.exe"
-        };
-
-        using var httpClient = new System.Net.Http.HttpClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-        foreach (var url in urls)
-        {
-            try
-            {
-                _logService.Log(LogLevel.Info, $"Downloading oscdimg.exe from: {url}");
-                var data = await httpClient.GetByteArrayAsync(url);
-                if (data.Length > 50000) // Sanity check — real oscdimg is ~100KB+
-                {
-                    await File.WriteAllBytesAsync(oscdimgPath, data);
-                    _logService.Log(LogLevel.Success, $"oscdimg.exe downloaded ({data.Length / 1024} KB)");
-                    return oscdimgPath;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logService.Log(LogLevel.Warning, $"Download failed from {url}: {ex.Message}");
-            }
-        }
-
-        _logService.Log(LogLevel.Warning, "Could not download oscdimg.exe — ISO build will use fallback method");
-        return null;
+        _logService.Log(LogLevel.Warning, "Runtime download of unverified oscdimg.exe disabled for safety. Install Windows ADK for bootable UEFI ISOs.");
+        return Task.FromResult<string?>(null);
     }
 
     /// <summary>
@@ -544,7 +554,7 @@ Write-Output 'ISO created'
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

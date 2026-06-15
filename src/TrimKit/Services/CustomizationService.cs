@@ -446,7 +446,7 @@ public class CustomizationService : ICustomizationService
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

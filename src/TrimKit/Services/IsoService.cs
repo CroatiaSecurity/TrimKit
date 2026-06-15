@@ -154,7 +154,7 @@ public class IsoService : IIsoService
             var psi = new ProcessStartInfo
             {
                 FileName = "dism.exe",
-                Arguments = $"/Get-WimInfo /WimFile:\"{imagePath}\" /Index:1",
+                Arguments = $"/English /Get-WimInfo /WimFile:\"{imagePath}\" /Index:1",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -544,7 +544,7 @@ public class IsoService : IIsoService
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = $"/Get-WimInfo /WimFile:\"{esdPath}\"",
+            Arguments = $"/English /Get-WimInfo /WimFile:\"{esdPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -565,7 +565,7 @@ public class IsoService : IIsoService
             var exportPsi = new ProcessStartInfo
             {
                 FileName = "dism.exe",
-                Arguments = $"/Export-Image /SourceImageFile:\"{esdPath}\" /SourceIndex:{i} /DestinationImageFile:\"{wimPath}\" /Compress:Max",
+                Arguments = $"/English /Export-Image /SourceImageFile:\"{esdPath}\" /SourceIndex:{i} /DestinationImageFile:\"{wimPath}\" /Compress:Max",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -617,7 +617,7 @@ public class IsoService : IIsoService
         var psi = new ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

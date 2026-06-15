@@ -12,7 +12,7 @@ public interface IDismService
     Task<List<WindowsFeature>> GetFeaturesAsync(string mountPath);
     Task EnableFeatureAsync(string mountPath, string featureName);
     Task DisableFeatureAsync(string mountPath, string featureName);
-    Task AddDriverAsync(string mountPath, string driverPath, bool recurse = true);
+    Task AddDriverAsync(string mountPath, string driverPath, bool recurse = true, bool forceUnsigned = false);
     Task<string> GetMountedImageStatus(string mountPath);
     Task CleanupMountsAsync();
 }

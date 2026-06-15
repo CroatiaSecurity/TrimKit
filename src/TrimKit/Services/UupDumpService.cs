@@ -358,7 +358,7 @@ public class UupDumpService : IUupDumpService
         var psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -382,10 +382,10 @@ public class UupDumpService : IUupDumpService
 
         // Read stdout line-by-line to parse progress
         var lastReportedPercent = 0;
-        while (!process.StandardOutput.EndOfStream)
+        string? line;
+        while ((line = await process.StandardOutput.ReadLineAsync(ct)) != null)
         {
             ct.ThrowIfCancellationRequested();
-            var line = await process.StandardOutput.ReadLineAsync(ct);
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             // Parse DISM progress: lines contain "[==== 23.4% ]" or "[ 100.0%]"
@@ -550,7 +550,7 @@ public class UupDumpService : IUupDumpService
         var psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = "dism.exe",
-            Arguments = arguments,
+            Arguments = "/English " + arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
