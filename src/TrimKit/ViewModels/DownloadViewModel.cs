@@ -123,66 +123,26 @@ public partial class DownloadViewModel : ObservableObject
     [RelayCommand]
     private async Task DownloadAsync()
     {
-        if (SelectedBuild == null || SelectedLanguage == null)
+        if (SelectedBuild == null)
         {
-            StatusText = "Please select a build and language first";
+            StatusText = "Please select a build first";
             return;
         }
 
-        // Ask user where to save the ISO
-        var saveDialog = new Microsoft.Win32.SaveFileDialog
+        var edition = SelectedEdition?.EditionId ?? "professional";
+        var language = SelectedLanguage?.LangCode ?? "en-us";
+
+        // Open the UUP dump download page for this build — user gets the full converter package
+        var url = $"https://uupdump.net/get.php?id={SelectedBuild.Id}&pack={language}&edition={edition}";
+
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            Title = "Save Windows ISO as",
-            Filter = "ISO Image (*.iso)|*.iso|WIM Image (*.wim)|*.wim",
-            FileName = $"{SelectedBuild.Title.Replace(" ", "_").Replace("(", "").Replace(")", "")}_{SelectedLanguage.LangCode}.iso"
-        };
+            FileName = url,
+            UseShellExecute = true
+        });
 
-        if (saveDialog.ShowDialog() != true)
-            return;
-
-        OutputDirectory = Path.GetDirectoryName(saveDialog.FileName) ?? OutputDirectory;
-        var outputPath = saveDialog.FileName;
-
-        try
-        {
-            IsBusy = true;
-            _cts = new CancellationTokenSource();
-
-            var progress = new Progress<(int percent, string status)>(p =>
-            {
-                ProgressValue = p.percent;
-                StatusText = p.status;
-            });
-
-            // Use UUP dump converter package method (downloads scripts + aria2 + wimlib)
-            await _uupDumpService.DownloadWithConverterAsync(
-                SelectedBuild.Id,
-                SelectedEdition?.EditionId ?? "professional",
-                SelectedLanguage.LangCode,
-                outputPath,
-                progress,
-                _cts.Token,
-                SkipCumulativeUpdate);
-
-            StatusText = $"ISO created: {outputPath}";
-            _logService.Log(Models.LogLevel.Success, $"ISO saved: {outputPath}");
-        }
-        catch (OperationCanceledException)
-        {
-            StatusText = "Download cancelled";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Download failed: {ex.Message}";
-            _logService.Log(Models.LogLevel.Error, $"Download failed: {ex.Message}");
-        }
-        finally
-        {
-            IsBusy = false;
-            ProgressValue = 0;
-            _cts?.Dispose();
-            _cts = null;
-        }
+        StatusText = $"UUP dump page opened — click 'Create download package' on the website, then run the script to build your ISO";
+        _logService.Log(Models.LogLevel.Info, $"Opened: {url}");
     }
 
     [RelayCommand]

@@ -325,7 +325,7 @@
                         <CheckBox Content="Skip cumulative update (~3 GB)" Foreground="#B4B8BE" 
                                   IsChecked="{Binding SkipCumulativeUpdate}" Margin="0,0,0,10" FontSize="11"/>
 
-                        <Button Content="Download and Build ISO" Command="{Binding DownloadCommand}" 
+                        <Button Content="Download ISO (opens UUP dump)" Command="{Binding DownloadCommand}" 
                                 Style="{StaticResource GreenButton}" HorizontalAlignment="Stretch" Padding="12,9"
                                 FontSize="12"/>
 
