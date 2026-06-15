@@ -7,17 +7,55 @@ namespace TrimKit;
 
 public partial class MainWindow : Window
 {
+    private readonly MainViewModel _viewModel;
+    private bool _cleanupDone;
+
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        _viewModel = viewModel;
         DataContext = viewModel;
         Loaded += OnLoaded;
+        Closing += OnClosing;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyDarkTitleBar();
         ApplyMicaBackdrop();
+    }
+
+    private async void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (_cleanupDone)
+            return;
+
+        // Always cleanup on close — no questions asked.
+        // If anything is mounted or a work folder exists, clean it up (discard unsaved changes).
+        if (_viewModel.IsMounted || _viewModel.IsBootMounted || _viewModel.IsInstallMounted ||
+            !string.IsNullOrEmpty(_viewModel.WorkFolder))
+        {
+            e.Cancel = true;
+            _viewModel.StatusText = "Shutting down — cleaning up...";
+
+            await _viewModel.GracefulCleanupAsync(commitChanges: false);
+            _cleanupDone = true;
+
+            // Now actually close
+            Closing -= OnClosing;
+            Close();
+        }
+    }
+
+    /// <summary>
+    /// Synchronous cleanup for process-exit scenarios where async isn't viable.
+    /// Called from App.xaml.cs ProcessExit handler.
+    /// </summary>
+    public void ForceCleanupSync()
+    {
+        if (_cleanupDone) return;
+        _cleanupDone = true;
+        _viewModel.ForceCleanupSync();
     }
 
     #region DWM Dark Title Bar + Mica (Win11 22H2+)

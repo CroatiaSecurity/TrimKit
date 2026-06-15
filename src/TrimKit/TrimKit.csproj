@@ -9,7 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>TrimKit</AssemblyName>
     <RootNamespace>TrimKit</RootNamespace>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Description>Free Windows Image Customization Tool</Description>
     <ApplicationIcon>TrimKit.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

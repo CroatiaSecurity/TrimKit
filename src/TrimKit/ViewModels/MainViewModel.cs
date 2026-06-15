@@ -18,6 +18,8 @@ public partial class MainViewModel : ObservableObject
     private readonly IImageToolsService _imageToolsService;
     private readonly IUnattendService _unattendService;
     private readonly ICustomizationService _customizationService;
+    private readonly IComponentRemovalService _componentRemovalService;
+    private readonly IWinSxsCleanupService _winSxsCleanupService;
 
     [ObservableProperty] private string _wimFilePath = string.Empty;
     [ObservableProperty] private string _mountPath = string.Empty;
@@ -27,6 +29,17 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _progressValue;
     [ObservableProperty] private WimImageInfo? _selectedImage;
     [ObservableProperty] private string _selectedTab = "Packages";
+    [ObservableProperty] private int _selectedTabIndex;
+
+    // New workflow state
+    [ObservableProperty] private string _workFolder = string.Empty;
+    [ObservableProperty] private string _isoFilePath = string.Empty;
+    [ObservableProperty] private string _installWimPath = string.Empty;
+    [ObservableProperty] private string _bootWimPath = string.Empty;
+    [ObservableProperty] private string _installMountPath = string.Empty;
+    [ObservableProperty] private string _bootMountPath = string.Empty;
+    [ObservableProperty] private bool _isInstallMounted;
+    [ObservableProperty] private bool _isBootMounted;
 
     public ObservableCollection<WimImageInfo> WimImages { get; } = [];
     public ObservableCollection<WindowsPackage> Packages { get; } = [];
@@ -35,13 +48,24 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<string> DriverPaths { get; } = [];
     public ObservableCollection<OperationLog> LogEntries { get; } = [];
 
+    // Component removal collections (populated on mount)
+    public ObservableCollection<RemovableComponent> ProvisionedApps { get; } = [];
+    public ObservableCollection<RemovableComponent> Capabilities { get; } = [];
+    public ObservableCollection<RemovableComponent> Fonts { get; } = [];
+    public ObservableCollection<RemovableComponent> KeyboardLayouts { get; } = [];
+    public ObservableCollection<RemovableComponent> Languages { get; } = [];
+    public ObservableCollection<RemovableComponent> InboxDrivers { get; } = [];
+    public ObservableCollection<WindowsServiceInfo> Services { get; } = [];
+
     public DownloadViewModel DownloadViewModel { get; }
 
     public MainViewModel(IDismService dismService, IRegistryService registryService,
         IPresetService presetService, ILogService logService, DownloadViewModel downloadViewModel,
         IIsoService isoService, IWindowsServiceManager serviceManager,
         IImageToolsService imageToolsService, IUnattendService unattendService,
-        ICustomizationService customizationService)
+        ICustomizationService customizationService,
+        IComponentRemovalService componentRemovalService,
+        IWinSxsCleanupService winSxsCleanupService)
     {
         _dismService = dismService;
         _registryService = registryService;
@@ -52,6 +76,8 @@ public partial class MainViewModel : ObservableObject
         _imageToolsService = imageToolsService;
         _unattendService = unattendService;
         _customizationService = customizationService;
+        _componentRemovalService = componentRemovalService;
+        _winSxsCleanupService = winSxsCleanupService;
         DownloadViewModel = downloadViewModel;
 
         _logService.LogAdded += OnLogAdded;
@@ -72,8 +98,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void BrowseWim()
+    private async Task BrowseWimAsync()
     {
+        if (IsBusy) return;
+
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Filter = "ISO Files (*.iso)|*.iso|WIM Files (*.wim)|*.wim|ESD Files (*.esd)|*.esd|All Files (*.*)|*.*",
@@ -85,18 +113,120 @@ public partial class MainViewModel : ObservableObject
             var ext = System.IO.Path.GetExtension(dialog.FileName).ToLowerInvariant();
             if (ext == ".iso")
             {
-                _ = ExtractFromIsoAsync(dialog.FileName);
+                await HandleIsoWorkflowAsync(dialog.FileName);
             }
             else if (ext == ".esd")
             {
-                // ESD needs conversion to WIM for editing
-                _ = ConvertEsdAndLoadAsync(dialog.FileName);
+                await ConvertEsdAndLoadAsync(dialog.FileName);
             }
             else
             {
                 WimFilePath = dialog.FileName;
-                _ = LoadWimInfoAsync();
+                await LoadWimInfoAsync();
             }
+        }
+    }
+
+    /// <summary>
+    /// Full ISO workflow:
+    /// 1. Mount ISO via Explorer (suppressed)
+    /// 2. Copy all ISO content to NTFS temp folder
+    /// 3. Unmount ISO
+    /// 4. Check if install.wim/esd is recovery compressed → convert if needed
+    /// 5. Show editions to user for selection
+    /// 6. After user picks edition → extract that edition to its own folder
+    /// 7. Extract boot.wim to its own folder
+    /// 8. Both are ready for independent debloating with separate safety guards
+    /// </summary>
+    private async Task HandleIsoWorkflowAsync(string isoPath)
+    {
+        try
+        {
+            IsBusy = true;
+            IsoFilePath = isoPath;
+
+            // Step 1: Mount ISO via Explorer (suppress the auto-opened Explorer window)
+            StatusText = "Mounting ISO...";
+            _logService.Log(LogLevel.Info, $"Starting ISO workflow for: {Path.GetFileName(isoPath)}");
+            var mountedDrive = await _isoService.MountIsoSuppressedAsync(isoPath);
+
+            // Step 2: Copy ISO content to NTFS temp work folder
+            StatusText = "Copying ISO content to work folder (NTFS drive)...";
+            var progress = new Progress<(int percent, string status)>(p =>
+            {
+                ProgressValue = p.percent;
+                StatusText = p.status;
+            });
+
+            WorkFolder = await _isoService.CopyIsoToWorkFolderAsync(mountedDrive, progress);
+
+            // Step 3: Unmount ISO (we have a full copy now)
+            StatusText = "Unmounting ISO...";
+            await _isoService.UnmountIsoAsync(isoPath);
+            _logService.Log(LogLevel.Success, "ISO unmounted — working from local copy");
+
+            // Step 3.5: Debloat ISO file structure (remove unneeded files with safety guard)
+            StatusText = "Analyzing ISO files for debloat...";
+            var debloatPlan = IsoFileSafetyGuard.AnalyzeWorkFolder(WorkFolder);
+            _logService.Log(LogLevel.Info,
+                $"ISO analysis: {debloatPlan.Critical.Count} critical, {debloatPlan.Protected.Count} protected, " +
+                $"{debloatPlan.SafeToRemove.Count} removable ({debloatPlan.TotalSavingsDisplay})");
+
+            if (debloatPlan.SafeToRemove.Count > 0)
+            {
+                StatusText = $"Debloating ISO structure ({debloatPlan.TotalSavingsDisplay} to free)...";
+                IsoFileSafetyGuard.ExecuteDebloatPlan(WorkFolder, debloatPlan, _logService, progress);
+            }
+
+            // Step 4: Find install image and check compression
+            var installImage = await _isoService.FindInstallImageAsync(WorkFolder);
+            if (installImage == null)
+            {
+                StatusText = "Error: No install.wim or install.esd found in ISO";
+                _logService.Log(LogLevel.Error, "No install.wim/esd found in work folder sources directory");
+                return;
+            }
+
+            // Check if it's recovery compressed
+            StatusText = "Checking image compression format...";
+            var isRecovery = await _isoService.IsRecoveryCompressedAsync(installImage);
+
+            if (isRecovery)
+            {
+                StatusText = "Recovery compression detected — converting to normal WIM...";
+                _logService.Log(LogLevel.Info, "install image is in recovery (LZMS) format — converting...");
+
+                installImage = await _isoService.ConvertToNormalWimAsync(installImage, progress);
+                _logService.Log(LogLevel.Success, "Converted to standard WIM compression");
+            }
+
+            // Step 5: Load editions for user to pick
+            WimFilePath = installImage;
+            StatusText = "Reading editions...";
+            WimImages.Clear();
+            var images = await _dismService.GetWimInfoAsync(installImage);
+            foreach (var img in images)
+            {
+                WimImages.Add(img);
+            }
+
+            if (WimImages.Count > 0)
+                SelectedImage = WimImages[0];
+
+            StatusText = $"Found {WimImages.Count} edition(s) — select one and click Mount to extract & prepare for debloating";
+            _logService.Log(LogLevel.Success, $"ISO ready: {WimImages.Count} edition(s) available. Select edition and mount.");
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"ISO workflow failed: {ex.Message}";
+            _logService.Log(LogLevel.Error, $"ISO workflow failed: {ex.Message}");
+            System.Windows.MessageBox.Show($"ISO workflow failed:\n{ex.Message}", "TrimKit",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsBusy = false;
+            ProgressValue = 0;
         }
     }
 
@@ -137,7 +267,7 @@ public partial class MainViewModel : ObservableObject
             _logService.Log(Models.LogLevel.Error, ex.Message);
             // Still try to load it
             WimFilePath = esdPath;
-            _ = LoadWimInfoAsync();
+            await LoadWimInfoAsync();
         }
         finally
         {
@@ -146,76 +276,7 @@ public partial class MainViewModel : ObservableObject
         }
     }    private async Task ExtractFromIsoAsync(string isoPath)
     {
-        try
-        {
-            IsBusy = true;
-            StatusText = "Extracting install image from ISO...";
-
-            var outputDir = System.IO.Path.Combine(
-                System.IO.Path.GetDirectoryName(isoPath) ?? "",
-                System.IO.Path.GetFileNameWithoutExtension(isoPath) + "_extracted");
-
-            var progress = new Progress<(int percent, string status)>(p =>
-            {
-                ProgressValue = p.percent;
-                StatusText = p.status;
-            });
-
-            await _isoService.ExtractWimFromIsoAsync(isoPath, outputDir, progress);
-
-            // Find the extracted WIM
-            var wimPath = System.IO.Path.Combine(outputDir, "install.wim");
-            if (File.Exists(wimPath))
-            {
-                WimFilePath = wimPath;
-                await LoadWimInfoAsync();
-                StatusText = "ISO extraction complete — install.wim ready";
-            }
-            else
-            {
-                // If still ESD (recovery format), convert to WIM
-                var esdPath = System.IO.Path.Combine(outputDir, "install.esd");
-                if (File.Exists(esdPath))
-                {
-                    StatusText = "Converting install.esd (recovery format) to install.wim...";
-                    _logService.Log(Models.LogLevel.Info, "ESD is in recovery format — converting to WIM for editing...");
-
-                    wimPath = System.IO.Path.Combine(outputDir, "install.wim");
-                    await _imageToolsService.ConvertEsdToWimAsync(esdPath, wimPath, progress);
-
-                    if (File.Exists(wimPath))
-                    {
-                        File.Delete(esdPath); // Remove the ESD, keep only WIM
-                        WimFilePath = wimPath;
-                        await LoadWimInfoAsync();
-                        StatusText = "ESD converted to WIM — ready for customization";
-                    }
-                    else
-                    {
-                        // Conversion failed, use ESD directly (read-only)
-                        WimFilePath = esdPath;
-                        await LoadWimInfoAsync();
-                        StatusText = "Warning: ESD conversion failed. Image loaded read-only.";
-                        _logService.Log(Models.LogLevel.Warning, "ESD→WIM conversion failed. Editing may be limited.");
-                    }
-                }
-                else
-                {
-                    StatusText = "No install image found in ISO";
-                    _logService.Log(Models.LogLevel.Error, "No install.wim or install.esd found in the ISO");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"ISO extraction failed: {ex.Message}";
-            _logService.Log(Models.LogLevel.Error, $"ISO extraction failed: {ex.Message}");
-        }
-        finally
-        {
-            IsBusy = false;
-            ProgressValue = 0;
-        }
+        await HandleIsoWorkflowAsync(isoPath);
     }
 
     [RelayCommand]
@@ -348,6 +409,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task MountImageAsync()
     {
+        if (IsBusy) return;
         if (SelectedImage == null || string.IsNullOrWhiteSpace(WimFilePath))
         {
             System.Windows.MessageBox.Show("Please select a WIM file and image index.", "TrimKit",
@@ -358,17 +420,77 @@ public partial class MainViewModel : ObservableObject
         try
         {
             IsBusy = true;
-            StatusText = "Mounting image...";
-            var progress = new Progress<int>(p => ProgressValue = p);
+            var progress = new Progress<(int percent, string status)>(p =>
+            {
+                ProgressValue = p.percent;
+                StatusText = p.status;
+            });
 
-            await _dismService.MountImageAsync(WimFilePath, SelectedImage.Index, MountPath, progress);
+            // If we have a work folder (came from ISO workflow), do the full extraction flow
+            if (!string.IsNullOrEmpty(WorkFolder) && Directory.Exists(WorkFolder))
+            {
+                // Step 6: Extract selected edition to its own folder
+                StatusText = "Extracting selected edition...";
+                var editionFolder = Path.Combine(WorkFolder, "Edition_Work");
+                InstallWimPath = await _isoService.ExtractEditionAsync(
+                    WimFilePath, SelectedImage.Index, editionFolder, progress);
 
-            IsMounted = true;
-            StatusText = "Image mounted - loading packages and features...";
+                _logService.Log(LogLevel.Success, $"Edition '{SelectedImage.Name}' extracted to: {editionFolder}");
 
-            await LoadPackagesAndFeaturesAsync();
+                // Step 7: Extract boot.wim to its own folder
+                StatusText = "Extracting boot.wim...";
+                var bootFolder = Path.Combine(WorkFolder, "Boot_Work");
+                BootWimPath = await _isoService.ExtractBootWimAsync(WorkFolder, bootFolder, progress);
+                _logService.Log(LogLevel.Success, $"boot.wim extracted to: {bootFolder}");
 
-            StatusText = "Image mounted and ready";
+                // Step 8: Mount extracted install.wim (single-edition, index 1) for debloating
+                StatusText = "Mounting install.wim for debloating...";
+                InstallMountPath = Path.Combine(WorkFolder, "Mount_Install");
+                Directory.CreateDirectory(InstallMountPath);
+
+                var mountProgress = new Progress<int>(p => ProgressValue = p);
+                await _dismService.MountImageAsync(InstallWimPath, 1, InstallMountPath, mountProgress);
+                IsInstallMounted = true;
+
+                // Also mount boot.wim index 2 (Windows Setup PE) for debloating
+                StatusText = "Mounting boot.wim for debloating...";
+                BootMountPath = Path.Combine(WorkFolder, "Mount_Boot");
+                Directory.CreateDirectory(BootMountPath);
+
+                // boot.wim typically has 2 indexes: 1=WinPE, 2=Windows Setup
+                // Mount index 2 (Setup) which is the one users interact with
+                var bootImages = await _dismService.GetWimInfoAsync(BootWimPath);
+                var bootIndex = bootImages.Count >= 2 ? 2 : 1;
+                await _dismService.MountImageAsync(BootWimPath, bootIndex, BootMountPath, mountProgress);
+                IsBootMounted = true;
+
+                // Set legacy fields for backward compatibility
+                MountPath = InstallMountPath;
+                IsMounted = true;
+                WimFilePath = InstallWimPath;
+
+                StatusText = "Both images mounted — ready for debloating";
+                _logService.Log(LogLevel.Success,
+                    $"✓ install.wim mounted at: {InstallMountPath}\n" +
+                    $"✓ boot.wim mounted at: {BootMountPath}\n" +
+                    "SafetyGuard active for install.wim | BootWimSafetyGuard active for boot.wim");
+
+                await LoadPackagesAndFeaturesAsync();
+            }
+            else
+            {
+                // Standard WIM mount (no ISO workflow — user selected a WIM directly)
+                StatusText = "Mounting image...";
+                var mountProgress = new Progress<int>(p => ProgressValue = p);
+
+                await _dismService.MountImageAsync(WimFilePath, SelectedImage.Index, MountPath, mountProgress);
+
+                IsMounted = true;
+                StatusText = "Image mounted - loading packages and features...";
+
+                await LoadPackagesAndFeaturesAsync();
+                StatusText = "Image mounted and ready";
+            }
         }
         catch (Exception ex)
         {
@@ -388,19 +510,78 @@ public partial class MainViewModel : ObservableObject
     {
         Packages.Clear();
         Features.Clear();
+        ProvisionedApps.Clear();
+        Capabilities.Clear();
+        Fonts.Clear();
+        KeyboardLayouts.Clear();
+        Languages.Clear();
+        InboxDrivers.Clear();
+        Services.Clear();
 
-        var packages = await _dismService.GetPackagesAsync(MountPath);
+        var mountTarget = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+
+        // DISM packages and features
+        var packages = await _dismService.GetPackagesAsync(mountTarget);
         foreach (var pkg in packages)
             Packages.Add(pkg);
 
-        var features = await _dismService.GetFeaturesAsync(MountPath);
+        var features = await _dismService.GetFeaturesAsync(mountTarget);
         foreach (var feat in features)
             Features.Add(feat);
+
+        // Component removal service — deep discovery
+        try
+        {
+            StatusText = "Scanning provisioned apps...";
+            var apps = await _componentRemovalService.GetProvisionedAppsAsync(mountTarget);
+            foreach (var app in apps) ProvisionedApps.Add(app);
+
+            StatusText = "Scanning capabilities...";
+            var caps = await _componentRemovalService.GetCapabilitiesAsync(mountTarget);
+            foreach (var cap in caps) Capabilities.Add(cap);
+
+            StatusText = "Scanning fonts...";
+            var fonts = await _componentRemovalService.GetFontsAsync(mountTarget);
+            foreach (var font in fonts) Fonts.Add(font);
+
+            StatusText = "Scanning keyboard layouts...";
+            var kbds = await _componentRemovalService.GetKeyboardLayoutsAsync(mountTarget);
+            foreach (var kbd in kbds) KeyboardLayouts.Add(kbd);
+
+            StatusText = "Scanning languages...";
+            var langs = await _componentRemovalService.GetLanguagesAsync(mountTarget);
+            foreach (var lang in langs) Languages.Add(lang);
+
+            StatusText = "Scanning inbox drivers...";
+            var drivers = await _componentRemovalService.GetInboxDriversAsync(mountTarget);
+            foreach (var drv in drivers) InboxDrivers.Add(drv);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Component scan partial failure: {ex.Message}");
+        }
+
+        // Service manager
+        try
+        {
+            StatusText = "Scanning services...";
+            var services = await _serviceManager.GetServicesAsync(mountTarget);
+            foreach (var svc in services) Services.Add(svc);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Service scan failed: {ex.Message}");
+        }
+
+        _logService.Log(LogLevel.Info,
+            $"Loaded: {Packages.Count} packages, {Features.Count} features, {ProvisionedApps.Count} apps, " +
+            $"{Capabilities.Count} capabilities, {Fonts.Count} fonts, {Services.Count} services");
     }
 
     [RelayCommand]
     private async Task ApplyChangesAsync()
     {
+        if (IsBusy) return;
         if (!IsMounted)
         {
             System.Windows.MessageBox.Show("No image is mounted.", "TrimKit",
@@ -408,12 +589,21 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var result = System.Windows.MessageBox.Show(
-            "Apply all selected changes to the mounted image?\n\nThis will:\n" +
+        var hasBootMount = IsBootMounted && !string.IsNullOrEmpty(BootMountPath);
+        var confirmMsg = "Apply all selected changes to the mounted image(s)?\n\nThis will:\n" +
             $"- Remove {Packages.Count(p => p.IsSelected)} package(s)\n" +
             $"- Modify {Features.Count(f => f.IsModified)} feature(s)\n" +
             $"- Apply {RegistryTweaks.Count(r => r.IsSelected)} registry tweak(s)\n" +
-            $"- Add {DriverPaths.Count} driver path(s)",
+            $"- Add {DriverPaths.Count} driver path(s)\n";
+
+        if (hasBootMount)
+        {
+            confirmMsg += "\n⚡ Changes will be applied to BOTH install.wim and boot.wim\n" +
+                          "   • install.wim uses SafetyGuard (install protection)\n" +
+                          "   • boot.wim uses BootWimSafetyGuard (stricter boot protection)";
+        }
+
+        var result = System.Windows.MessageBox.Show(confirmMsg,
             "Confirm Changes",
             System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
 
@@ -427,15 +617,25 @@ public partial class MainViewModel : ObservableObject
                            Features.Count(f => f.IsModified) +
                            RegistryTweaks.Count(r => r.IsSelected) +
                            DriverPaths.Count;
-            var currentOp = 0;
 
-            // Remove selected packages
+            // If boot.wim is also mounted, we'll apply package/feature changes there too
+            if (hasBootMount) totalOps *= 2;
+
+            var currentOp = 0;
+            var installMountTarget = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+
+            // ═══════════════════════════════════════════════════════════
+            // INSTALL.WIM — apply with standard SafetyGuard
+            // ═══════════════════════════════════════════════════════════
+            _logService.Log(LogLevel.Info, "━━━ Applying to install.wim (SafetyGuard active) ━━━");
+
+            // Remove selected packages from install.wim
             foreach (var pkg in Packages.Where(p => p.IsSelected).ToList())
             {
-                StatusText = $"Removing: {pkg.DisplayName}";
+                StatusText = $"[install.wim] Removing: {pkg.DisplayName}";
                 try
                 {
-                    await _dismService.RemovePackageAsync(MountPath, pkg.PackageName);
+                    await _dismService.RemovePackageAsync(installMountTarget, pkg.PackageName);
                     Packages.Remove(pkg);
                 }
                 catch (Exception ex)
@@ -446,16 +646,16 @@ public partial class MainViewModel : ObservableObject
                 ProgressValue = (int)((double)currentOp / totalOps * 100);
             }
 
-            // Apply feature changes
+            // Apply feature changes to install.wim
             foreach (var feat in Features.Where(f => f.IsModified).ToList())
             {
-                StatusText = $"Modifying feature: {feat.FeatureName}";
+                StatusText = $"[install.wim] Modifying feature: {feat.FeatureName}";
                 try
                 {
                     if (feat.IsEnabled)
-                        await _dismService.EnableFeatureAsync(MountPath, feat.FeatureName);
+                        await _dismService.EnableFeatureAsync(installMountTarget, feat.FeatureName);
                     else
-                        await _dismService.DisableFeatureAsync(MountPath, feat.FeatureName);
+                        await _dismService.DisableFeatureAsync(installMountTarget, feat.FeatureName);
 
                     feat.OriginalState = feat.IsEnabled;
                 }
@@ -467,13 +667,13 @@ public partial class MainViewModel : ObservableObject
                 ProgressValue = (int)((double)currentOp / totalOps * 100);
             }
 
-            // Apply registry tweaks
+            // Apply registry tweaks to install.wim
             foreach (var tweak in RegistryTweaks.Where(r => r.IsSelected))
             {
-                StatusText = $"Applying tweak: {tweak.Name}";
+                StatusText = $"[install.wim] Applying tweak: {tweak.Name}";
                 try
                 {
-                    await _registryService.ApplyTweakAsync(MountPath, tweak);
+                    await _registryService.ApplyTweakAsync(installMountTarget, tweak);
                 }
                 catch (Exception ex)
                 {
@@ -483,13 +683,13 @@ public partial class MainViewModel : ObservableObject
                 ProgressValue = (int)((double)currentOp / totalOps * 100);
             }
 
-            // Add drivers
+            // Add drivers to install.wim
             foreach (var driverPath in DriverPaths.ToList())
             {
-                StatusText = $"Adding drivers from: {driverPath}";
+                StatusText = $"[install.wim] Adding drivers from: {driverPath}";
                 try
                 {
-                    await _dismService.AddDriverAsync(MountPath, driverPath);
+                    await _dismService.AddDriverAsync(installMountTarget, driverPath);
                 }
                 catch (Exception ex)
                 {
@@ -499,8 +699,198 @@ public partial class MainViewModel : ObservableObject
                 ProgressValue = (int)((double)currentOp / totalOps * 100);
             }
 
-            StatusText = "All changes applied successfully";
-            _logService.Log(LogLevel.Success, "All changes applied");
+            _logService.Log(LogLevel.Success, "install.wim changes applied");
+
+            // Component removal (Appx, capabilities, fonts, keyboards, languages, drivers)
+            var selectedComponents = new List<RemovableComponent>();
+            selectedComponents.AddRange(ProvisionedApps.Where(c => c.IsSelected));
+            selectedComponents.AddRange(Capabilities.Where(c => c.IsSelected));
+            selectedComponents.AddRange(Fonts.Where(c => c.IsSelected));
+            selectedComponents.AddRange(KeyboardLayouts.Where(c => c.IsSelected));
+            selectedComponents.AddRange(Languages.Where(c => c.IsSelected));
+            selectedComponents.AddRange(InboxDrivers.Where(c => c.IsSelected));
+
+            if (selectedComponents.Count > 0)
+            {
+                StatusText = $"[install.wim] Removing {selectedComponents.Count} component(s)...";
+                var compProgress = new Progress<(int percent, string status)>(p =>
+                {
+                    ProgressValue = p.percent;
+                    StatusText = $"[install.wim] {p.status}";
+                });
+                await _componentRemovalService.RemoveAllAsync(installMountTarget, selectedComponents, compProgress);
+                _logService.Log(LogLevel.Success, $"Removed {selectedComponents.Count} component(s) from install.wim");
+            }
+
+            // Service configuration
+            var modifiedServices = Services.Where(s => s.IsModified).ToList();
+            if (modifiedServices.Count > 0)
+            {
+                StatusText = $"[install.wim] Configuring {modifiedServices.Count} service(s)...";
+                foreach (var svc in modifiedServices)
+                {
+                    try
+                    {
+                        if (svc.StartType == ServiceStartType.Remove)
+                            await _serviceManager.RemoveServiceAsync(installMountTarget, svc.ServiceName);
+                        else
+                            await _serviceManager.SetServiceStartTypeAsync(installMountTarget, svc.ServiceName, svc.StartType);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"Service {svc.ServiceName}: {ex.Message}");
+                    }
+                }
+                _logService.Log(LogLevel.Success, $"Configured {modifiedServices.Count} service(s)");
+            }
+
+            // WinSxS cleanup (after all removals are done)
+            StatusText = "[install.wim] Running WinSxS cleanup...";
+            try
+            {
+                var cleanupOptions = new WinSxsCleanupOptions
+                {
+                    StartComponentCleanup = true,
+                    ResetBase = true,
+                    RemoveOrphanedManifests = true,
+                    RemoveBackups = true
+                };
+                var cleanupProgress = new Progress<(int percent, string status)>(p =>
+                {
+                    ProgressValue = p.percent;
+                    StatusText = $"[install.wim] {p.status}";
+                });
+                await _winSxsCleanupService.CleanupAsync(installMountTarget, cleanupOptions, cleanupProgress);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"WinSxS cleanup: {ex.Message}");
+            }
+
+            // DISM image cleanup (shrinks WIM after component removal)
+            StatusText = "[install.wim] Running DISM cleanup...";
+            try
+            {
+                await _customizationService.CleanupImageAsync(installMountTarget, resetBase: true);
+            }
+            catch (Exception ex)
+            {
+                _logService.Log(LogLevel.Warning, $"DISM cleanup: {ex.Message}");
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // BOOT.WIM — apply with BootWimSafetyGuard (stricter)
+            // ═══════════════════════════════════════════════════════════
+            if (hasBootMount)
+            {
+                _logService.Log(LogLevel.Info, "━━━ Applying to boot.wim (BootWimSafetyGuard active — stricter) ━━━");
+
+                var bootOptions = BootWimSafetyGuard.GetDefaultBootCompatibilityOptions();
+
+                // Remove packages from boot.wim (with boot safety guard)
+                foreach (var pkg in Packages.Where(p => p.IsSelected).ToList())
+                {
+                    // Check boot safety guard
+                    if (BootWimSafetyGuard.IsBootCritical(pkg.PackageName))
+                    {
+                        _logService.Log(LogLevel.Warning,
+                            $"[boot.wim] BootWimSafetyGuard BLOCKED removal of: {pkg.DisplayName} (boot-critical)");
+                        currentOp++;
+                        ProgressValue = (int)((double)currentOp / totalOps * 100);
+                        continue;
+                    }
+
+                    if (BootWimSafetyGuard.IsProtectedByBootCompatibility(pkg.PackageName, bootOptions))
+                    {
+                        _logService.Log(LogLevel.Warning,
+                            $"[boot.wim] BootWimSafetyGuard BLOCKED removal of: {pkg.DisplayName} (boot-protected)");
+                        currentOp++;
+                        ProgressValue = (int)((double)currentOp / totalOps * 100);
+                        continue;
+                    }
+
+                    StatusText = $"[boot.wim] Removing: {pkg.DisplayName}";
+                    try
+                    {
+                        await _dismService.RemovePackageAsync(BootMountPath, pkg.PackageName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"[boot.wim] Could not remove {pkg.DisplayName}: {ex.Message}");
+                    }
+                    currentOp++;
+                    ProgressValue = (int)((double)currentOp / totalOps * 100);
+                }
+
+                // Apply feature changes to boot.wim (with boot safety guard)
+                foreach (var feat in Features.Where(f => f.IsModified).ToList())
+                {
+                    if (BootWimSafetyGuard.IsBootCritical(feat.FeatureName))
+                    {
+                        _logService.Log(LogLevel.Warning,
+                            $"[boot.wim] BootWimSafetyGuard BLOCKED modification of: {feat.FeatureName}");
+                        currentOp++;
+                        ProgressValue = (int)((double)currentOp / totalOps * 100);
+                        continue;
+                    }
+
+                    StatusText = $"[boot.wim] Modifying feature: {feat.FeatureName}";
+                    try
+                    {
+                        if (feat.IsEnabled)
+                            await _dismService.EnableFeatureAsync(BootMountPath, feat.FeatureName);
+                        else
+                            await _dismService.DisableFeatureAsync(BootMountPath, feat.FeatureName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"[boot.wim] Could not modify {feat.FeatureName}: {ex.Message}");
+                    }
+                    currentOp++;
+                    ProgressValue = (int)((double)currentOp / totalOps * 100);
+                }
+
+                // Apply registry tweaks to boot.wim (only applicable ones)
+                foreach (var tweak in RegistryTweaks.Where(r => r.IsSelected))
+                {
+                    StatusText = $"[boot.wim] Applying tweak: {tweak.Name}";
+                    try
+                    {
+                        await _registryService.ApplyTweakAsync(BootMountPath, tweak);
+                    }
+                    catch (Exception)
+                    {
+                        // Many tweaks won't apply to boot.wim — that's expected
+                        _logService.Log(LogLevel.Info, $"[boot.wim] Skipped tweak {tweak.Name} (not applicable)");
+                    }
+                    currentOp++;
+                    ProgressValue = (int)((double)currentOp / totalOps * 100);
+                }
+
+                // Add drivers to boot.wim
+                foreach (var driverPath in DriverPaths.ToList())
+                {
+                    StatusText = $"[boot.wim] Adding drivers from: {driverPath}";
+                    try
+                    {
+                        await _dismService.AddDriverAsync(BootMountPath, driverPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Log(LogLevel.Warning, $"[boot.wim] Could not add driver: {ex.Message}");
+                    }
+                    currentOp++;
+                    ProgressValue = (int)((double)currentOp / totalOps * 100);
+                }
+
+                _logService.Log(LogLevel.Success, "boot.wim changes applied (with BootWimSafetyGuard)");
+            }
+
+            StatusText = "All changes applied — starting cleanup...";
+            _logService.Log(LogLevel.Success, "All changes applied to both images");
+
+            // Graceful cleanup: unmount everything and delete temp work folder
+            await GracefulCleanupAsync(commitChanges: true);
         }
         catch (Exception ex)
         {
@@ -527,12 +917,26 @@ public partial class MainViewModel : ObservableObject
             StatusText = commit ? "Saving and unmounting..." : "Discarding and unmounting...";
             var progress = new Progress<int>(p => ProgressValue = p);
 
-            await _dismService.UnmountImageAsync(MountPath, commit, progress);
+            // Unmount boot.wim first (if mounted via ISO workflow)
+            if (IsBootMounted && !string.IsNullOrEmpty(BootMountPath))
+            {
+                StatusText = commit ? "Saving boot.wim changes..." : "Discarding boot.wim changes...";
+                await _dismService.UnmountImageAsync(BootMountPath, commit, progress);
+                IsBootMounted = false;
+                _logService.Log(LogLevel.Success, $"boot.wim unmounted ({(commit ? "saved" : "discarded")})");
+            }
+
+            // Unmount install.wim
+            var mountToUnmount = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+            StatusText = commit ? "Saving install.wim changes..." : "Discarding install.wim changes...";
+            await _dismService.UnmountImageAsync(mountToUnmount, commit, progress);
+            IsInstallMounted = false;
 
             IsMounted = false;
             Packages.Clear();
             Features.Clear();
-            StatusText = "Image unmounted";
+            StatusText = "All images unmounted";
+            _logService.Log(LogLevel.Success, "All images unmounted successfully");
         }
         catch (Exception ex)
         {
@@ -752,5 +1156,148 @@ public partial class MainViewModel : ObservableObject
     {
         LogEntries.Clear();
         _logService.Clear();
+    }
+
+    /// <summary>
+    /// Graceful cleanup: unmounts all mounted images, deletes temp work folder.
+    /// Called after Apply completes or when the application is closing.
+    /// </summary>
+    public async Task GracefulCleanupAsync(bool commitChanges = true)
+    {
+        try
+        {
+            _logService.Log(LogLevel.Info, "Starting graceful cleanup...");
+
+            // Unmount boot.wim
+            if (IsBootMounted && !string.IsNullOrEmpty(BootMountPath))
+            {
+                try
+                {
+                    StatusText = commitChanges ? "Cleanup: saving boot.wim..." : "Cleanup: discarding boot.wim...";
+                    await _dismService.UnmountImageAsync(BootMountPath, commitChanges);
+                    IsBootMounted = false;
+                    _logService.Log(LogLevel.Success, $"boot.wim unmounted ({(commitChanges ? "saved" : "discarded")})");
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"boot.wim unmount failed: {ex.Message}");
+                    // Force discard on failure
+                    try { await _dismService.UnmountImageAsync(BootMountPath, false); } catch { }
+                    IsBootMounted = false;
+                }
+            }
+
+            // Unmount install.wim
+            var installMount = !string.IsNullOrEmpty(InstallMountPath) ? InstallMountPath : MountPath;
+            if (IsMounted && !string.IsNullOrEmpty(installMount))
+            {
+                try
+                {
+                    StatusText = commitChanges ? "Cleanup: saving install.wim..." : "Cleanup: discarding install.wim...";
+                    await _dismService.UnmountImageAsync(installMount, commitChanges);
+                    IsInstallMounted = false;
+                    IsMounted = false;
+                    _logService.Log(LogLevel.Success, $"install.wim unmounted ({(commitChanges ? "saved" : "discarded")})");
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"install.wim unmount failed: {ex.Message}");
+                    try { await _dismService.UnmountImageAsync(installMount, false); } catch { }
+                    IsInstallMounted = false;
+                    IsMounted = false;
+                }
+            }
+
+            // Unmount the ISO if it's still mounted
+            if (!string.IsNullOrEmpty(IsoFilePath))
+            {
+                try
+                {
+                    await _isoService.UnmountIsoAsync(IsoFilePath);
+                    _logService.Log(LogLevel.Info, "ISO unmounted");
+                }
+                catch { /* ISO may already be unmounted */ }
+            }
+
+            // Clean up DISM abandoned mounts
+            try
+            {
+                await _dismService.CleanupMountsAsync();
+            }
+            catch { }
+
+            // Delete temp work folder
+            if (!string.IsNullOrEmpty(WorkFolder) && Directory.Exists(WorkFolder))
+            {
+                try
+                {
+                    StatusText = "Cleanup: removing temp work folder...";
+                    Directory.Delete(WorkFolder, true);
+                    _logService.Log(LogLevel.Success, $"Deleted work folder: {WorkFolder}");
+                    WorkFolder = string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Log(LogLevel.Warning, $"Could not delete work folder: {ex.Message}");
+                }
+            }
+
+            Packages.Clear();
+            Features.Clear();
+            StatusText = "Cleanup complete";
+            ProgressValue = 0;
+            _logService.Log(LogLevel.Success, "Graceful cleanup finished");
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Error, $"Cleanup error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Synchronous emergency cleanup — called from ProcessExit or crash handlers
+    /// where async is not viable. Uses dism.exe /Cleanup-Wim and force-deletes work folder.
+    /// </summary>
+    public void ForceCleanupSync()
+    {
+        try
+        {
+            // Force-discard any mounted images via dism /Cleanup-Wim
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "dism.exe",
+                Arguments = "/Cleanup-Wim",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var process = System.Diagnostics.Process.Start(psi);
+            process?.WaitForExit(15000); // Wait max 15s
+
+            // Unmount ISO
+            if (!string.IsNullOrEmpty(IsoFilePath))
+            {
+                var isoPsi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -NonInteractive -Command \"Dismount-DiskImage -ImagePath '{IsoFilePath.Replace("'", "''")}' -ErrorAction SilentlyContinue\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var isoProcess = System.Diagnostics.Process.Start(isoPsi);
+                isoProcess?.WaitForExit(10000);
+            }
+
+            // Delete work folder
+            if (!string.IsNullOrEmpty(WorkFolder) && Directory.Exists(WorkFolder))
+            {
+                try { Directory.Delete(WorkFolder, true); } catch { }
+            }
+        }
+        catch
+        {
+            // Last resort — nothing more we can do
+        }
     }
 }

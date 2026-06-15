@@ -311,3 +311,210 @@ public enum SafetyLevel
     /// <summary>Critical — NEVER removable. Will break install/boot.</summary>
     Critical
 }
+
+/// <summary>
+/// Separate safety guard specifically for boot.wim operations.
+/// Boot.wim is the Windows PE (setup/recovery) environment — it has different
+/// requirements than install.wim. Breaking boot.wim = unbootable installer.
+///
+/// More restrictive than the install.wim SafetyGuard because boot.wim is minimal
+/// by design and most components are essential for setup to function.
+/// </summary>
+public static class BootWimSafetyGuard
+{
+    /// <summary>
+    /// Components/packages that are absolutely critical to boot.wim functionality.
+    /// Removing these will make the Windows installer unbootable.
+    /// </summary>
+    private static readonly HashSet<string> BootCriticalPatterns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // WinPE core
+        "WinPE",
+        "WinPE-Setup",
+        "WinPE-Setup-Client",
+        "WinPE-Setup-Server",
+        "WinPE-SRT", // Startup Repair Tool
+        "WinPE-SecureStartup",
+        "WinPE-Rejuv", // Push-button reset
+        "WinPE-EnhancedStorage",
+        "WinPE-WDS-Tools",
+        "WinPE-SecureBootCmdlets",
+
+        // Filesystem and boot
+        "ntfs",
+        "volmgr",
+        "partmgr",
+        "disk",
+        "bootmgr",
+        "bcd",
+        "winload",
+        "bootim",
+
+        // Setup infrastructure
+        "Microsoft-Windows-Setup",
+        "SetupPlatform",
+        "setupcore",
+        "setupqueue",
+        "oobe",
+        "windeploy",
+        "sysprep",
+
+        // Core PE services
+        "wpeinit",
+        "wpeutil",
+        "startnet",
+        "pecmd",
+        "winpeshl",
+
+        // Hardware abstraction required for boot
+        "hal",
+        "acpi",
+        "pci",
+        "isapnp",
+
+        // Storage drivers (required to read install media)
+        "storahci",
+        "stornvme",
+        "usbstor",
+        "usbehci",
+        "usbxhci",
+        "usbhub",
+
+        // Network (needed for network-based installs and OOBE)
+        "WinPE-WMI",
+        "tcpip",
+        "ndis",
+        "netio",
+
+        // Input (keyboard/mouse required for setup)
+        "kbdclass",
+        "mouclass",
+        "i8042prt",
+        "hidusb",
+
+        // Display (required to show setup UI)
+        "BasicDisplay",
+        "BasicRender",
+        "dxgkrnl",
+        "cdd",
+
+        // Servicing (required for applying image)
+        "CBS",
+        "TrustedInstaller",
+        "winsxs",
+        "servicing",
+    };
+
+    /// <summary>
+    /// User-configurable boot.wim protections.
+    /// Less granular than install.wim — boot.wim has fewer safe removal targets.
+    /// </summary>
+    public static List<BootCompatibilityOption> GetDefaultBootCompatibilityOptions() =>
+    [
+        new("Boot_WMI", "WinPE WMI (remote management)", true,
+            ["WinPE-WMI", "WinPE-MDAC"]),
+        new("Boot_NetFx", "WinPE .NET Framework", true,
+            ["WinPE-NetFx"]),
+        new("Boot_PowerShell", "WinPE PowerShell", false,
+            ["WinPE-PowerShell", "WinPE-DismCmdlets", "WinPE-StorageWMI", "WinPE-SecureBootCmdlets"]),
+        new("Boot_Scripting", "WinPE Scripting (WSH)", false,
+            ["WinPE-Scripting", "WinPE-WSH"]),
+        new("Boot_HTA", "WinPE HTA support", false,
+            ["WinPE-HTA"]),
+        new("Boot_FMAPI", "WinPE File Management API", false,
+            ["WinPE-FMAPI"]),
+        new("Boot_WiFi", "WinPE WiFi support", true,
+            ["WinPE-WiFi-Package", "WinPE-Dot3Svc"]),
+        new("Boot_Speech", "WinPE Speech (Narrator)", false,
+            ["WinPE-Speech", "WinPE-Narrator"]),
+        new("Boot_FontSupport", "WinPE additional font support", false,
+            ["WinPE-FontSupport"]),
+        new("Boot_Recovery", "WinPE Recovery Tools", true,
+            ["WinPE-Rejuv", "WinPE-SRT"]),
+        new("Boot_BitLocker", "WinPE BitLocker support", true,
+            ["WinPE-SecureStartup", "WinPE-EnhancedStorage"]),
+        new("Boot_PPPoE", "WinPE PPPoE support", false,
+            ["WinPE-PPPoE"]),
+    ];
+
+    /// <summary>
+    /// Checks if a component is absolutely critical to boot.wim (never removable).
+    /// </summary>
+    public static bool IsBootCritical(string id)
+    {
+        return BootCriticalPatterns.Any(pattern =>
+            id.Contains(pattern, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Checks if a component is protected by boot.wim compatibility settings.
+    /// </summary>
+    public static bool IsProtectedByBootCompatibility(string id, List<BootCompatibilityOption> options)
+    {
+        if (IsBootCritical(id))
+            return true;
+
+        foreach (var option in options.Where(o => o.IsEnabled))
+        {
+            if (option.ProtectedPatterns.Any(pattern =>
+                id.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Validates a removal list specifically for boot.wim context.
+    /// More restrictive than install.wim validation.
+    /// </summary>
+    public static (List<RemovableComponent> safe, List<RemovableComponent> blocked) ValidateBootRemovalList(
+        List<RemovableComponent> components, List<BootCompatibilityOption>? options = null)
+    {
+        options ??= GetDefaultBootCompatibilityOptions();
+
+        var safe = new List<RemovableComponent>();
+        var blocked = new List<RemovableComponent>();
+
+        foreach (var comp in components.Where(c => c.IsSelected))
+        {
+            if (IsBootCritical(comp.Id))
+            {
+                comp.IsProtected = true;
+                blocked.Add(comp);
+            }
+            else if (IsProtectedByBootCompatibility(comp.Id, options))
+            {
+                comp.IsProtected = true;
+                blocked.Add(comp);
+            }
+            else
+            {
+                safe.Add(comp);
+            }
+        }
+
+        return (safe, blocked);
+    }
+}
+
+/// <summary>
+/// A user-configurable boot.wim compatibility protection option.
+/// </summary>
+public class BootCompatibilityOption
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public bool IsEnabled { get; set; }
+    public List<string> ProtectedPatterns { get; set; }
+
+    public BootCompatibilityOption(string id, string name, bool isEnabled, string[] patterns)
+    {
+        Id = id;
+        Name = name;
+        IsEnabled = isEnabled;
+        ProtectedPatterns = [.. patterns];
+    }
+}

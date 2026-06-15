@@ -8,6 +8,9 @@ namespace TrimKit;
 
 public partial class App : System.Windows.Application
 {
+    private MainViewModel? _mainViewModel;
+    private MainWindow? _mainWindow;
+
     public App()
     {
         DispatcherUnhandledException += (s, e) =>
@@ -18,6 +21,10 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.OK, MessageBoxImage.Error);
             e.Handled = true;
         };
+
+        // Hook process-level exit events for premature termination cleanup
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
     }
 
     private void OnStartup(object sender, StartupEventArgs e)
@@ -45,13 +52,14 @@ public partial class App : System.Windows.Application
             var dependencyService = new DependencyService(httpClient, logService);
 
             var downloadViewModel = new DownloadViewModel(uupDumpService, msDownloadService, logService);
-            var mainViewModel = new MainViewModel(
+            _mainViewModel = new MainViewModel(
                 dismService, registryService, presetService, logService,
                 downloadViewModel, isoService, serviceManager, imageToolsService,
-                unattendService, customizationService);
+                unattendService, customizationService,
+                componentRemovalService, winSxsCleanupService);
 
-            var mainWindow = new MainWindow(mainViewModel);
-            mainWindow.Show();
+            _mainWindow = new MainWindow(_mainViewModel);
+            _mainWindow.Show();
         }
         catch (Exception ex)
         {
@@ -61,5 +69,20 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown();
         }
+    }
+
+    /// <summary>
+    /// Called when the process is exiting (Ctrl+C, Task Manager kill, system shutdown).
+    /// Runs synchronous cleanup as a last resort.
+    /// </summary>
+    private void OnProcessExit(object? sender, EventArgs e)
+    {
+        _mainWindow?.ForceCleanupSync();
+    }
+
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        // Try to cleanup even on fatal crash
+        _mainWindow?.ForceCleanupSync();
     }
 }

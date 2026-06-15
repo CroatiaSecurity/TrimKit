@@ -13,7 +13,9 @@
     <Window.Resources>
         <converters:LogLevelToBrushConverter x:Key="LogLevelToBrush"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
         <converters:InverseBoolConverter x:Key="InverseBool"/>
+        <converters:IndexToVisibilityConverter x:Key="IndexToVis"/>
 
         <Style x:Key="ChromeButton" TargetType="Button">
             <Setter Property="Background" Value="#35363A"/>
@@ -125,6 +127,12 @@
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="Padding" Value="6,4"/>
         </Style>
+
+        <!-- Placeholder panel style for unimplemented tabs -->
+        <Style x:Key="PlaceholderPanel" TargetType="StackPanel">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -151,11 +159,12 @@
                         <TextBlock Text="&#x1F9D9;" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBlock Text="TrimKit" FontSize="16" FontWeight="Bold" Foreground="#8AB4F8"/>
                     </StackPanel>
-                    <TextBlock Text="v0.0.2" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
+                    <TextBlock Text="v0.0.3" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
                 </StackPanel>
 
                 <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0"
-                         ItemContainerStyle="{StaticResource NavItem}" SelectedIndex="0">
+                         ItemContainerStyle="{StaticResource NavItem}"
+                         SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
                     <ListBoxItem Content="&#x2B07;  Source / ISO"/>
                     <ListBoxItem Content="&#x1F4E6;  Updates"/>
                     <ListBoxItem Content="&#x1F4F1;  Apps"/>
@@ -193,6 +202,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+            <!-- TOP TOOLBAR -->
             <Border Grid.Row="0" Background="#28292D" BorderBrush="#303336" BorderThickness="0,0,0,1" Padding="16,10">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Image:" Foreground="#80868E" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -213,51 +223,329 @@
                 </StackPanel>
             </Border>
 
-            <!-- Source / ISO View -->
-            <Grid Grid.Row="1" Margin="30,30,30,30" DataContext="{Binding DownloadViewModel}">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="650">
-                    <TextBlock Text="Get a Windows ISO" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" 
-                               HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                    <TextBlock Text="Download an ISO from one of these sources, then click Browse to load it." 
-                               Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+            <!-- TAB CONTENT PANELS -->
+            <Grid Grid.Row="1">
 
-                    <!-- Official -->
-                    <TextBlock Text="Official" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
-                    <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
-                        <Button Content="Microsoft (Win11)" Command="{Binding OpenMicrosoftPageCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="Microsoft (Win10)" Command="{Binding OpenMicrosoft10PageCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                    </WrapPanel>
+                <!-- Tab 0: Source / ISO -->
+                <Grid Margin="30,30,30,30" DataContext="{Binding DownloadViewModel}"
+                      Visibility="{Binding DataContext.SelectedTabIndex, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IndexToVis}, ConverterParameter=0}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="650">
+                        <TextBlock Text="Get a Windows ISO" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" 
+                                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Download an ISO from one of these sources, then click Browse to load it." 
+                                   Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" Margin="0,0,0,30"/>
 
-                    <!-- Third-party -->
-                    <TextBlock Text="Third-party mirrors &amp; tools" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
-                    <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
-                        <Button Content="UUP dump" Command="{Binding OpenUupDumpCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="Adguard TechBench" Command="{Binding OpenAdguardTechBenchCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="Adguard UUP" Command="{Binding OpenAdguardUupCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="Heidoc" Command="{Binding OpenHeidocCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="OS.click" Command="{Binding OpenOsClickCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="GetMyOS" Command="{Binding OpenGetMyOsCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="Bob Pony" Command="{Binding OpenBobPonyCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                        <Button Content="massgrave" Command="{Binding OpenMassgraveCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                    </WrapPanel>
+                        <TextBlock Text="Official" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
+                        <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                            <Button Content="Microsoft (Win11)" Command="{Binding OpenMicrosoftPageCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="Microsoft (Win10)" Command="{Binding OpenMicrosoft10PageCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                        </WrapPanel>
 
-                    <!-- USB -->
-                    <TextBlock Text="USB boot tool" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
-                    <WrapPanel HorizontalAlignment="Center">
-                        <Button Content="Rufus" Command="{Binding OpenRufusCommand}" 
-                                Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
-                    </WrapPanel>
+                        <TextBlock Text="Third-party mirrors &amp; tools" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
+                        <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                            <Button Content="UUP dump" Command="{Binding OpenUupDumpCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="Adguard TechBench" Command="{Binding OpenAdguardTechBenchCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="Adguard UUP" Command="{Binding OpenAdguardUupCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="Heidoc" Command="{Binding OpenHeidocCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="OS.click" Command="{Binding OpenOsClickCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="GetMyOS" Command="{Binding OpenGetMyOsCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="Bob Pony" Command="{Binding OpenBobPonyCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                            <Button Content="massgrave" Command="{Binding OpenMassgraveCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                        </WrapPanel>
+
+                        <TextBlock Text="USB boot tool" Foreground="#5F6368" FontSize="10.5" Margin="0,0,0,8"/>
+                        <WrapPanel HorizontalAlignment="Center">
+                            <Button Content="Rufus" Command="{Binding OpenRufusCommand}" 
+                                    Style="{StaticResource ChromeButton}" Margin="4" Padding="18,10" FontSize="12"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Tab 1: Updates -->
+                <StackPanel Style="{StaticResource PlaceholderPanel}"
+                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=1}">
+                    <TextBlock Text="&#x1F4E6;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                    <TextBlock Text="Windows Updates" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Text="Update integration runs automatically via presets or Apply All.&#x0a;Add .msu/.cab files to the work folder to queue them."/>
                 </StackPanel>
+
+                <!-- Tab 2: Apps -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=2}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Provisioned Apps — check items to remove" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding ProvisionedApps}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding SizeDisplay}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 3: Fonts -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=3}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Fonts — check to remove (system fonts protected)" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Fonts}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding IsProtected, Converter={StaticResource InverseBool}}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding SizeDisplay}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                        <TextBlock Text="🔒" Visibility="{Binding IsProtected, Converter={StaticResource BoolToVis}}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 4: Keyboards -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=4}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Keyboard Layouts — check to remove" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding KeyboardLayouts}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 5: Languages -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=5}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Languages — check to remove" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Languages}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 6: Drivers -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=6}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Drivers — add folders to inject, check inbox drivers to remove" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Add Driver Folder" Command="{Binding AddDriverPathCommand}" Style="{StaticResource ChromeButton}"/>
+                        <ItemsControl ItemsSource="{Binding DriverPaths}" Margin="12,0,0,0">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#35363A" CornerRadius="4" Padding="8,4" Margin="4,0">
+                                        <TextBlock Text="{Binding}" Foreground="#E8EAED" FontSize="11"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding InboxDrivers}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                        <TextBlock Text="{Binding SizeDisplay}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 7: Features -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=7}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Windows Features — toggle enable/disable" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Features}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsEnabled}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding FeatureName}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding State}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 8: Services -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=8}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Services — check to disable (uncheck to leave as-is)" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Services}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED" Width="280"/>
+                                        <TextBlock Text="{Binding ServiceName}" Foreground="#5F6368" Width="200"/>
+                                        <TextBlock Text="{Binding StartType}" Foreground="#80868E"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 9: Components (Capabilities) -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=9}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Capabilities — check to remove" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Capabilities}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 10: Tweaks -->
+                <Grid Margin="16" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=10}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Registry Tweaks — check to apply" Foreground="#FFFFFF" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding RegistryTweaks}" Background="#1C1C1F" BorderBrush="#303336">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Foreground="#E8EAED" Margin="4,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" Foreground="#E8EAED"/>
+                                        <TextBlock Text="{Binding Category}" Foreground="#5F6368" Margin="12,0,0,0"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Tab 11: Customize -->
+                <StackPanel Style="{StaticResource PlaceholderPanel}"
+                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=11}">
+                    <TextBlock Text="&#x1F3A8;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                    <TextBlock Text="Customize" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Visibility="{Binding IsMounted, Converter={StaticResource BoolToVis}}"
+                               Text="Image mounted. Customization (wallpapers, branding, scripts) available via presets."/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Visibility="{Binding IsMounted, Converter={StaticResource InverseBoolToVis}}"
+                               Text="Wallpapers, branding, cursors, themes, scripts.&#x0a;Browse an ISO and mount an edition first."/>
+                </StackPanel>
+
+                <!-- Tab 12: Unattend -->
+                <StackPanel Style="{StaticResource PlaceholderPanel}"
+                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=12}">
+                    <TextBlock Text="&#x1F4DD;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                    <TextBlock Text="Autounattend" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Text="Generate autounattend.xml for unattended install.&#x0a;Skip OOBE, bypass TPM, create local accounts."/>
+                </StackPanel>
+
+                <!-- Tab 13: Compatibility -->
+                <StackPanel Style="{StaticResource PlaceholderPanel}"
+                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=13}">
+                    <TextBlock Text="&#x1F6E1;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                    <TextBlock Text="Compatibility" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Text="Configure SafetyGuard protections.&#x0a;Check/uncheck functional areas to protect from removal.&#x0a;&#x0a;• install.wim → SafetyGuard (45+ protection areas)&#x0a;• boot.wim → BootWimSafetyGuard (stricter, boot-critical)&#x0a;• ISO files → IsoFileSafetyGuard (bootloader, EFI protected)"/>
+                </StackPanel>
+
+                <!-- Tab 14: Apply -->
+                <StackPanel Style="{StaticResource PlaceholderPanel}"
+                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=14}">
+                    <TextBlock Text="&#x25B6;" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                    <TextBlock Text="Apply Changes" Foreground="#FFFFFF" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Visibility="{Binding IsMounted, Converter={StaticResource BoolToVis}}"
+                               Text="Ready to apply. Click Apply All in the bottom bar to process all changes&#x0a;to both install.wim and boot.wim with safety guards active."/>
+                    <TextBlock Foreground="#80868E" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,8,0,0"
+                               Visibility="{Binding IsMounted, Converter={StaticResource InverseBoolToVis}}"
+                               Text="Review and apply all pending changes.&#x0a;Browse an ISO and mount an edition first."/>
+                </StackPanel>
+
+                <!-- Tab 15: Log -->
+                <Grid Margin="16"
+                      Visibility="{Binding SelectedTabIndex, Converter={StaticResource IndexToVis}, ConverterParameter=15}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Operation Log" Foreground="#FFFFFF" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding LogEntries}" Background="#1C1C1F" BorderBrush="#303336"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Message}" Foreground="{Binding Level, Converter={StaticResource LogLevelToBrush}}"
+                                           FontSize="11.5" FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Margin="4,2"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="2" Content="Clear Log" Command="{Binding ClearLogCommand}" 
+                            Style="{StaticResource ChromeButton}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                </Grid>
+
             </Grid>
         </Grid>
 

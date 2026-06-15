@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using TrimKit.Models;
 
 namespace TrimKit.Services;
@@ -58,6 +59,281 @@ public class IsoService : IIsoService
         throw new InvalidOperationException("ISO mount timed out. Try double-clicking the ISO in Explorer, then browse to the mounted drive's sources\\install.wim");
     }
 
+    public async Task<string> MountIsoSuppressedAsync(string isoPath)
+    {
+        _logService.Log(LogLevel.Info, $"Mounting ISO (suppressed): {Path.GetFileName(isoPath)}");
+
+        // Snapshot existing Explorer windows before mount
+        var existingExplorerWindows = GetExplorerWindowPaths();
+
+        // Use PowerShell Mount-DiskImage — this mounts without auto-opening Explorer
+        var script = $"Mount-DiskImage -ImagePath '{isoPath.Replace("'", "''")}' -PassThru | Get-Volume | Select-Object -ExpandProperty DriveLetter";
+        var output = await RunPowerShellAsync(script);
+        var driveLetter = output.Trim();
+
+        string mountedDrive;
+
+        if (!string.IsNullOrEmpty(driveLetter) && char.IsLetter(driveLetter[0]))
+        {
+            mountedDrive = $"{driveLetter[0]}:\\";
+            _logService.Log(LogLevel.Success, $"ISO mounted at: {mountedDrive}");
+        }
+        else
+        {
+            // Fallback: find the new CD-ROM drive
+            _logService.Log(LogLevel.Info, "Drive letter not returned directly, scanning drives...");
+            await Task.Delay(2000);
+
+            mountedDrive = await FindMountedIsoDriveAsync();
+            if (mountedDrive == null)
+                throw new InvalidOperationException("ISO mount failed — no mounted drive detected.");
+        }
+
+        // Close any Explorer windows that opened for the mounted drive
+        await Task.Delay(1500); // Give Explorer a moment to open (if it does)
+        await CloseNewExplorerWindowsAsync(existingExplorerWindows, mountedDrive);
+
+        return mountedDrive;
+    }
+
+    public async Task<string> CopyIsoToWorkFolderAsync(string mountedDrivePath, IProgress<(int percent, string status)>? progress = null)
+    {
+        var workFolder = GetNtfsTempWorkFolder();
+        _logService.Log(LogLevel.Info, $"Copying ISO content to work folder: {workFolder}");
+        progress?.Report((0, "Scanning ISO content..."));
+
+        // Count total bytes first for progress reporting
+        var allFiles = Directory.GetFiles(mountedDrivePath, "*", SearchOption.AllDirectories);
+        long totalBytes = 0;
+        foreach (var file in allFiles)
+        {
+            try { totalBytes += new FileInfo(file).Length; } catch { }
+        }
+
+        long copiedBytes = 0;
+        int fileCount = 0;
+
+        foreach (var sourceFile in allFiles)
+        {
+            var relativePath = Path.GetRelativePath(mountedDrivePath, sourceFile);
+            var destFile = Path.Combine(workFolder, relativePath);
+            var destDir = Path.GetDirectoryName(destFile)!;
+
+            Directory.CreateDirectory(destDir);
+
+            // Copy with progress tracking
+            var fileInfo = new FileInfo(sourceFile);
+            await using var src = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+            await using var dst = new FileStream(destFile, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await src.ReadAsync(buffer)) > 0)
+            {
+                await dst.WriteAsync(buffer.AsMemory(0, read));
+                copiedBytes += read;
+            }
+
+            fileCount++;
+            var pct = totalBytes > 0 ? (int)(copiedBytes * 100 / totalBytes) : 0;
+            progress?.Report((pct, $"Copying [{fileCount}/{allFiles.Length}]: {relativePath}"));
+        }
+
+        progress?.Report((100, "ISO content copied to work folder"));
+        _logService.Log(LogLevel.Success, $"Copied {fileCount} files ({copiedBytes / (1024.0 * 1024.0):F0} MB) to {workFolder}");
+        return workFolder;
+    }
+
+    public async Task<bool> IsRecoveryCompressedAsync(string imagePath)
+    {
+        if (!File.Exists(imagePath))
+            return false;
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dism.exe",
+                Arguments = $"/Get-WimInfo /WimFile:\"{imagePath}\" /Index:1",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = new Process { StartInfo = psi };
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            // DISM reports "Recovery" for LZMS-compressed files
+            if (output.Contains("Recovery", StringComparison.OrdinalIgnoreCase) &&
+                output.Contains("Compression", StringComparison.OrdinalIgnoreCase))
+            {
+                _logService.Log(LogLevel.Info, $"{Path.GetFileName(imagePath)} is recovery (LZMS) compressed");
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Could not determine compression type: {ex.Message}");
+        }
+
+        return false;
+    }
+
+    public async Task<string> ConvertToNormalWimAsync(string imagePath, IProgress<(int percent, string status)>? progress = null)
+    {
+        var dir = Path.GetDirectoryName(imagePath)!;
+        var outputWim = Path.Combine(dir, "install.wim");
+
+        // If the input IS already install.wim, use a temp name for output
+        if (string.Equals(Path.GetFullPath(imagePath), Path.GetFullPath(outputWim), StringComparison.OrdinalIgnoreCase))
+        {
+            outputWim = Path.Combine(dir, "install_converted.wim");
+        }
+
+        _logService.Log(LogLevel.Info, $"Converting {Path.GetFileName(imagePath)} to standard WIM...");
+        progress?.Report((5, "Reading image info..."));
+
+        // Get edition count
+        var infoOutput = await RunDismAsync($"/Get-WimInfo /WimFile:\"{imagePath}\"");
+        var indexCount = infoOutput.Split("Index :").Length - 1;
+
+        // Skip index 1 if it's metadata (common in MS-distributed ESDs)
+        var startIndex = 1;
+        if (indexCount > 1 && infoOutput.Contains("Windows Setup", StringComparison.OrdinalIgnoreCase))
+        {
+            startIndex = 2; // Skip metadata
+        }
+
+        for (int i = startIndex; i <= indexCount; i++)
+        {
+            var pct = 5 + (int)((i - startIndex + 1.0) / (indexCount - startIndex + 1) * 90);
+            progress?.Report((pct, $"Exporting index {i}/{indexCount} to normal WIM..."));
+
+            await RunDismAsync($"/Export-Image /SourceImageFile:\"{imagePath}\" /SourceIndex:{i} /DestinationImageFile:\"{outputWim}\" /Compress:Max");
+        }
+
+        // If we used a temp name, replace the original
+        if (outputWim.EndsWith("_converted.wim", StringComparison.OrdinalIgnoreCase))
+        {
+            var finalPath = Path.Combine(dir, "install.wim");
+            File.Delete(imagePath); // Delete the recovery-compressed original
+            File.Move(outputWim, finalPath);
+            outputWim = finalPath;
+        }
+        else if (Path.GetExtension(imagePath).Equals(".esd", StringComparison.OrdinalIgnoreCase))
+        {
+            // Delete the .esd since we now have a .wim
+            File.Delete(imagePath);
+        }
+
+        progress?.Report((100, "Conversion complete"));
+        _logService.Log(LogLevel.Success, $"Converted to: {Path.GetFileName(outputWim)}");
+        return outputWim;
+    }
+
+    public async Task<string> ExtractEditionAsync(string wimPath, int editionIndex, string outputFolder, IProgress<(int percent, string status)>? progress = null)
+    {
+        Directory.CreateDirectory(outputFolder);
+        var outputWim = Path.Combine(outputFolder, "install.wim");
+
+        _logService.Log(LogLevel.Info, $"Extracting edition index {editionIndex} to {outputFolder}");
+        progress?.Report((10, $"Exporting edition index {editionIndex}..."));
+
+        await RunDismAsync($"/Export-Image /SourceImageFile:\"{wimPath}\" /SourceIndex:{editionIndex} /DestinationImageFile:\"{outputWim}\" /Compress:Max");
+
+        progress?.Report((100, "Edition extracted"));
+        _logService.Log(LogLevel.Success, $"Edition {editionIndex} exported to: {outputWim}");
+        return outputWim;
+    }
+
+    public async Task<string> ExtractBootWimAsync(string workFolder, string outputFolder, IProgress<(int percent, string status)>? progress = null)
+    {
+        Directory.CreateDirectory(outputFolder);
+
+        var sourceBootWim = Path.Combine(workFolder, "sources", "boot.wim");
+        if (!File.Exists(sourceBootWim))
+        {
+            throw new FileNotFoundException("boot.wim not found in the ISO sources folder", sourceBootWim);
+        }
+
+        var destBootWim = Path.Combine(outputFolder, "boot.wim");
+        _logService.Log(LogLevel.Info, $"Copying boot.wim to: {outputFolder}");
+        progress?.Report((10, "Copying boot.wim..."));
+
+        // Copy with progress
+        await using var src = new FileStream(sourceBootWim, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+        await using var dst = new FileStream(destBootWim, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+
+        var totalBytes = src.Length;
+        var buffer = new byte[81920];
+        long bytesCopied = 0;
+        int read;
+
+        while ((read = await src.ReadAsync(buffer)) > 0)
+        {
+            await dst.WriteAsync(buffer.AsMemory(0, read));
+            bytesCopied += read;
+            var pct = 10 + (int)(bytesCopied * 85.0 / totalBytes);
+            progress?.Report((pct, $"Copying boot.wim: {bytesCopied / (1024.0 * 1024.0):F0} / {totalBytes / (1024.0 * 1024.0):F0} MB"));
+        }
+
+        progress?.Report((100, "boot.wim extracted"));
+        _logService.Log(LogLevel.Success, $"boot.wim extracted to: {destBootWim}");
+        return destBootWim;
+    }
+
+    public string GetNtfsTempWorkFolder()
+    {
+        // Find an NTFS drive with enough space, prefer the system temp drive
+        var candidates = new List<string>();
+
+        // First candidate: system temp
+        var systemTemp = Path.GetTempPath();
+        candidates.Add(systemTemp);
+
+        // Additional candidates: all fixed NTFS drives
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            if (drive.IsReady && drive.DriveType == DriveType.Fixed &&
+                drive.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase) &&
+                drive.AvailableFreeSpace > 10L * 1024 * 1024 * 1024) // >10 GB free
+            {
+                candidates.Add(Path.Combine(drive.RootDirectory.FullName, "TrimKit_Work"));
+            }
+        }
+
+        // Use the first valid NTFS candidate
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                var driveRoot = Path.GetPathRoot(candidate);
+                if (driveRoot != null)
+                {
+                    var driveInfo = new DriveInfo(driveRoot);
+                    if (driveInfo.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase) &&
+                        driveInfo.AvailableFreeSpace > 10L * 1024 * 1024 * 1024)
+                    {
+                        var workDir = Path.Combine(candidate, $"TrimKit_{DateTime.Now:yyyyMMdd_HHmmss}");
+                        Directory.CreateDirectory(workDir);
+                        _logService.Log(LogLevel.Info, $"Work folder created on NTFS drive: {workDir}");
+                        return workDir;
+                    }
+                }
+            }
+            catch { /* skip this candidate */ }
+        }
+
+        // Last resort: use system temp even if we couldn't verify NTFS
+        var fallback = Path.Combine(Path.GetTempPath(), $"TrimKit_{DateTime.Now:yyyyMMdd_HHmmss}");
+        Directory.CreateDirectory(fallback);
+        _logService.Log(LogLevel.Warning, $"Could not verify NTFS drive — using system temp: {fallback}");
+        return fallback;
+    }
+
     public async Task UnmountIsoAsync(string isoPath)
     {
         _logService.Log(LogLevel.Info, $"Unmounting ISO: {Path.GetFileName(isoPath)}");
@@ -67,6 +343,111 @@ public class IsoService : IIsoService
 
         _logService.Log(LogLevel.Success, "ISO unmounted");
     }
+
+    #region Explorer Window Suppression
+
+    /// <summary>
+    /// Gets the list of currently open Explorer window locations (to detect new ones after mount).
+    /// </summary>
+    private static HashSet<string> GetExplorerWindowPaths()
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            // Use Shell.Application COM to enumerate Explorer windows
+            dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application")!)!;
+            foreach (dynamic window in shell.Windows())
+            {
+                try
+                {
+                    string? location = window.LocationURL;
+                    if (!string.IsNullOrEmpty(location))
+                        paths.Add(location);
+                }
+                catch { }
+            }
+            Marshal.ReleaseComObject(shell);
+        }
+        catch { }
+        return paths;
+    }
+
+    /// <summary>
+    /// Closes any Explorer windows that were opened after the mount and point to the mounted drive.
+    /// </summary>
+    private async Task CloseNewExplorerWindowsAsync(HashSet<string> existingWindows, string mountedDrive)
+    {
+        try
+        {
+            dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application")!)!;
+            var toClose = new List<dynamic>();
+
+            foreach (dynamic window in shell.Windows())
+            {
+                try
+                {
+                    string? location = window.LocationURL;
+                    if (location != null && !existingWindows.Contains(location))
+                    {
+                        // Check if this window is for our mounted drive
+                        var decoded = Uri.UnescapeDataString(location);
+                        if (decoded.Contains(mountedDrive.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) ||
+                            decoded.Contains(mountedDrive.Replace("\\", "/"), StringComparison.OrdinalIgnoreCase))
+                        {
+                            toClose.Add(window);
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var window in toClose)
+            {
+                try
+                {
+                    window.Quit();
+                    _logService.Log(LogLevel.Info, "Closed auto-opened Explorer window for mounted ISO");
+                }
+                catch { }
+            }
+
+            Marshal.ReleaseComObject(shell);
+        }
+        catch (Exception ex)
+        {
+            _logService.Log(LogLevel.Warning, $"Could not suppress Explorer window: {ex.Message}");
+        }
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Searches for a newly mounted CD-ROM drive containing Windows install files.
+    /// </summary>
+    private async Task<string> FindMountedIsoDriveAsync()
+    {
+        for (int attempt = 0; attempt < 15; attempt++)
+        {
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                if (drive.DriveType == DriveType.CDRom && drive.IsReady)
+                {
+                    var sourcesDir = Path.Combine(drive.RootDirectory.FullName, "sources");
+                    if (Directory.Exists(sourcesDir) &&
+                        (File.Exists(Path.Combine(sourcesDir, "install.wim")) ||
+                         File.Exists(Path.Combine(sourcesDir, "install.esd"))))
+                    {
+                        return drive.RootDirectory.FullName;
+                    }
+                }
+            }
+            await Task.Delay(1000);
+        }
+
+        return null!;
+    }
+
+    #endregion
 
     public Task<string?> FindInstallImageAsync(string isoMountPath)
     {
@@ -226,6 +607,33 @@ public class IsoService : IIsoService
         if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(error))
         {
             throw new InvalidOperationException($"PowerShell error: {error.Trim()}");
+        }
+
+        return output;
+    }
+
+    private async Task<string> RunDismAsync(string arguments)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "dism.exe",
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = new Process { StartInfo = psi };
+        process.Start();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            var msg = !string.IsNullOrWhiteSpace(error) ? error : output;
+            throw new InvalidOperationException($"DISM error: {msg.Trim()}");
         }
 
         return output;
