@@ -213,159 +213,46 @@
                 </StackPanel>
             </Border>
 
-            <!-- Source / ISO Download View (default view) -->
-            <Grid Grid.Row="1" Margin="20" DataContext="{Binding DownloadViewModel}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            <!-- Source / ISO View -->
+            <Grid Grid.Row="1" Margin="30" DataContext="{Binding DownloadViewModel}">
+                <StackPanel VerticalAlignment="Top" MaxWidth="600" HorizontalAlignment="Left">
+                    <TextBlock Text="Get a Windows ISO" Foreground="#FFFFFF" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                    <TextBlock Text="Download an ISO from one of these sources, then use Browse above to load it into TrimKit." 
+                               Foreground="#80868E" FontSize="12" Margin="0,0,0,24" TextWrapping="Wrap"/>
 
-                <TextBlock Grid.Row="0" Text="Download Windows ISO from UUP dump or browse a local file" 
-                           Foreground="#80868E" FontSize="13" Margin="0,0,0,14"/>
-
-                <!-- Search bar -->
-                <Grid Grid.Row="1" Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" 
-                             VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Content="Search UUP dump" Command="{Binding SearchBuildsCommand}" 
-                            Style="{StaticResource AccentButton}" Margin="8,0,0,0"/>
-                    <Button Grid.Column="2" Content="Cancel" Command="{Binding CancelDownloadCommand}"
-                            Style="{StaticResource DangerButton}" Margin="8,0,0,0"
-                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
-                </Grid>
-
-                <!-- Results + Options -->
-                <Grid Grid.Row="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="12"/>
-                        <ColumnDefinition Width="240"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Build list -->
-                    <DataGrid Grid.Column="0" ItemsSource="{Binding Builds}" 
-                              SelectedItem="{Binding SelectedBuild}"
-                              AutoGenerateColumns="False" CanUserAddRows="False"
-                              IsReadOnly="True" SelectionMode="Single"
-                              Background="#28292D" Foreground="#FFFFFF" BorderBrush="#3C4043"
-                              RowBackground="#28292D" AlternatingRowBackground="#2D2E32"
-                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#303336"
-                              HeadersVisibility="Column">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Build" Binding="{Binding Title}" Width="*">
-                                <DataGridTextColumn.HeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader">
-                                        <Setter Property="Background" Value="#35363A"/>
-                                        <Setter Property="Foreground" Value="#8AB4F8"/>
-                                        <Setter Property="Padding" Value="10,6"/>
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                    </Style>
-                                </DataGridTextColumn.HeaderStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="Arch" Binding="{Binding Architecture}" Width="55">
-                                <DataGridTextColumn.HeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader">
-                                        <Setter Property="Background" Value="#35363A"/>
-                                        <Setter Property="Foreground" Value="#8AB4F8"/>
-                                        <Setter Property="Padding" Value="10,6"/>
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                    </Style>
-                                </DataGridTextColumn.HeaderStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="Date" Binding="{Binding DateAdded, StringFormat='yyyy-MM-dd'}" Width="85">
-                                <DataGridTextColumn.HeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader">
-                                        <Setter Property="Background" Value="#35363A"/>
-                                        <Setter Property="Foreground" Value="#8AB4F8"/>
-                                        <Setter Property="Padding" Value="10,6"/>
-                                        <Setter Property="FontWeight" Value="SemiBold"/>
-                                    </Style>
-                                </DataGridTextColumn.HeaderStyle>
-                            </DataGridTextColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-
-                    <!-- Right panel options -->
-                    <StackPanel Grid.Column="2">
-                        <!-- Section 1: UUP dump -->
-                        <TextBlock Text="UUP Dump" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        
-                        <Button Content="Load Build Details" Command="{Binding LoadBuildDetailsCommand}" 
-                                Style="{StaticResource AccentButton}" Margin="0,0,0,10"
-                                HorizontalAlignment="Stretch"/>
-
-                        <TextBlock Text="Edition" Foreground="#80868E" Margin="0,0,0,4" FontSize="11"/>
-                        <ComboBox ItemsSource="{Binding Editions}" SelectedItem="{Binding SelectedEdition}" 
-                                  Margin="0,0,0,8" TextElement.Foreground="#FFFFFF">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" Foreground="#FFFFFF"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-
-                        <TextBlock Text="Language" Foreground="#80868E" Margin="0,0,0,4" FontSize="11"/>
-                        <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" 
-                                  Margin="0,0,0,8" TextElement.Foreground="#FFFFFF">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" Foreground="#FFFFFF"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-
-                        <CheckBox Content="Skip cumulative update (~3 GB)" Foreground="#B4B8BE" 
-                                  IsChecked="{Binding SkipCumulativeUpdate}" Margin="0,0,0,10" FontSize="11"/>
-
-                        <Button Content="Download ISO (opens UUP dump)" Command="{Binding DownloadCommand}" 
-                                Style="{StaticResource GreenButton}" HorizontalAlignment="Stretch" Padding="12,9"
-                                FontSize="12"/>
-
-                        <!-- Divider -->
-                        <Border Height="1" Background="#3C4043" Margin="0,14,0,14"/>
-
-                        <!-- Section 2: Other ISO Sources -->
-                        <TextBlock Text="Other ISO Sources" Foreground="#8AB4F8" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <!-- Row 1 -->
+                    <WrapPanel Margin="0,0,0,8">
                         <Button Content="Microsoft (Win11)" Command="{Binding OpenMicrosoftPageCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
                         <Button Content="Microsoft (Win10)" Command="{Binding OpenMicrosoft10PageCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
-                        <Button Content="Adguard TechBench" Command="{Binding OpenAdguardTechBenchCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
-                        <Button Content="Adguard UUP" Command="{Binding OpenAdguardUupCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
                         <Button Content="UUP dump" Command="{Binding OpenUupDumpCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                        <Button Content="Adguard TechBench" Command="{Binding OpenAdguardTechBenchCommand}" 
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                        <Button Content="Adguard UUP" Command="{Binding OpenAdguardUupCommand}" 
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
                         <Button Content="Heidoc" Command="{Binding OpenHeidocCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                    </WrapPanel>
+
+                    <!-- Row 2 -->
+                    <WrapPanel Margin="0,0,0,8">
                         <Button Content="OS.click" Command="{Binding OpenOsClickCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
-                        <Button Content="Bob Pony" Command="{Binding OpenBobPonyCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
                         <Button Content="GetMyOS" Command="{Binding OpenGetMyOsCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
-                        <Button Content="Rufus (USB)" Command="{Binding OpenRufusCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5" Margin="0,0,0,4"/>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                        <Button Content="Bob Pony" Command="{Binding OpenBobPonyCommand}" 
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
                         <Button Content="massgrave" Command="{Binding OpenMassgraveCommand}" 
-                                Style="{StaticResource ChromeButton}" HorizontalAlignment="Stretch" Padding="8,5" FontSize="10.5"/>
-                    </StackPanel>
-                </Grid>
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                        <Button Content="Rufus" Command="{Binding OpenRufusCommand}" 
+                                Style="{StaticResource ChromeButton}" Margin="0,0,8,8" Padding="16,9" FontSize="12"/>
+                    </WrapPanel>
 
-                <!-- Progress -->
-                <ProgressBar Grid.Row="3" Value="{Binding ProgressValue}" Height="4" Margin="0,10,0,0"
-                             Background="#35363A" Foreground="#8AB4F8" BorderThickness="0"
-                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
-
-                <!-- Status -->
-                <TextBlock Grid.Row="4" Text="{Binding StatusText}" Foreground="#80868E" Margin="0,6,0,0" FontSize="11.5"/>
+                    <TextBlock Text="After downloading, click Browse in the toolbar above to load the ISO or WIM file." 
+                               Foreground="#5F6368" FontSize="11" Margin="0,16,0,0"/>
+                </StackPanel>
             </Grid>
         </Grid>
 
