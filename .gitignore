@@ -1,0 +1,10 @@
+bin/
+obj/
+publish/
+releases/
+*.user
+*.suo
+.vs/
+*.DotSettings.user
+stderr.txt
+stdout.txt

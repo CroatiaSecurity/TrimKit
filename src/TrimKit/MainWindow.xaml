@@ -1,0 +1,223 @@
+<Window x:Class="TrimKit.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:TrimKit.Converters"
+        Title="TrimKit — Windows Image Customization" 
+        Height="800" Width="1250"
+        MinHeight="680" MinWidth="1050"
+        WindowStartupLocation="CenterScreen"
+        Icon="TrimKit.ico"
+        Background="#FF202124"
+        FontFamily="Segoe UI Variable, Segoe UI"
+        FontSize="13">
+
+    <Window.Resources>
+        <converters:LogLevelToBrushConverter x:Key="LogLevelToBrush"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:InverseBoolConverter x:Key="InverseBool"/>
+
+        <Style x:Key="ChromeButton" TargetType="Button">
+            <Setter Property="Background" Value="#35363A"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#3C4043"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#444750"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#5F6368"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Setter Property="Background" Value="#8AB4F8"/>
+            <Setter Property="Foreground" Value="#202124"/>
+            <Setter Property="BorderBrush" Value="#8AB4F8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="GreenButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Setter Property="Background" Value="#81C995"/>
+            <Setter Property="Foreground" Value="#202124"/>
+            <Setter Property="BorderBrush" Value="#81C995"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ChromeButton}">
+            <Setter Property="Background" Value="#F28B82"/>
+            <Setter Property="Foreground" Value="#202124"/>
+            <Setter Property="BorderBrush" Value="#F28B82"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="NavItem" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#B4B8BE"/>
+            <Setter Property="Padding" Value="14,9"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}"
+                                BorderBrush="Transparent" BorderThickness="3,0,0,0">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2D2E32"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#8AB4F8"/>
+                                <Setter Property="Foreground" Value="#8AB4F8"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#28292D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#292A2D"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#3C4043"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="CaretBrush" Value="#8AB4F8"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#292A2D"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#3C4043"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- LEFT SIDEBAR -->
+        <Border Grid.Column="0" Grid.RowSpan="2" Background="#1C1C1F" BorderBrush="#303336" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="16,16,16,12">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#x1F9D9;" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="TrimKit" FontSize="16" FontWeight="Bold" Foreground="#8AB4F8"/>
+                    </StackPanel>
+                    <TextBlock Text="v0.0.1" Foreground="#5F6368" FontSize="10" Margin="28,2,0,0"/>
+                </StackPanel>
+
+                <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource NavItem}" SelectedIndex="0">
+                    <ListBoxItem Content="&#x2B07;  Source / ISO"/>
+                    <ListBoxItem Content="&#x1F4E6;  Updates"/>
+                    <ListBoxItem Content="&#x1F4F1;  Apps"/>
+                    <ListBoxItem Content="&#x1F524;  Fonts"/>
+                    <ListBoxItem Content="&#x2328;  Keyboards"/>
+                    <ListBoxItem Content="&#x1F310;  Languages"/>
+                    <ListBoxItem Content="&#x1F4BE;  Drivers"/>
+                    <ListBoxItem Content="&#x2699;  Features"/>
+                    <ListBoxItem Content="&#x1F6E0;  Services"/>
+                    <ListBoxItem Content="&#x1F5D1;  Components"/>
+                    <ListBoxItem Content="&#x1F527;  Tweaks"/>
+                    <ListBoxItem Content="&#x1F3A8;  Customize"/>
+                    <ListBoxItem Content="&#x1F4DD;  Unattend"/>
+                    <ListBoxItem Content="&#x1F6E1;  Compatibility"/>
+                    <ListBoxItem Content="&#x25B6;  Apply"/>
+                    <ListBoxItem Content="&#x1F4CB;  Log"/>
+                </ListBox>
+
+                <Border Grid.Row="2" Background="#28292D" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="{Binding StatusText}" Foreground="#80868E" FontSize="10.5"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <ProgressBar Value="{Binding ProgressValue}" Height="3" Margin="0,6,0,0"
+                                     Background="#35363A" Foreground="#8AB4F8" BorderThickness="0"
+                                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- RIGHT CONTENT -->
+        <Grid Grid.Column="1" Grid.Row="0" Background="#202124">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#28292D" BorderBrush="#303336" BorderThickness="0,0,0,1" Padding="16,10">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Image:" Foreground="#80868E" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Text="{Binding WimFilePath}" Width="320" IsReadOnly="True" VerticalAlignment="Center"/>
+                    <Button Content="Browse" Command="{Binding BrowseWimCommand}" 
+                            Style="{StaticResource ChromeButton}" Margin="8,0"/>
+                    <ComboBox ItemsSource="{Binding WimImages}" SelectedItem="{Binding SelectedImage}"
+                              DisplayMemberPath="DisplayName" Width="200" VerticalAlignment="Center" Margin="8,0"/>
+                    <Button Content="Mount" Command="{Binding MountImageCommand}" 
+                            Style="{StaticResource AccentButton}" Margin="8,0"
+                            IsEnabled="{Binding IsMounted, Converter={StaticResource InverseBool}}"/>
+                    <Button Content="Save" Command="{Binding UnmountCommand}" CommandParameter="True"
+                            Style="{StaticResource GreenButton}" Margin="4,0"
+                            IsEnabled="{Binding IsMounted}"/>
+                    <Button Content="Discard" Command="{Binding UnmountCommand}" CommandParameter="False"
+                            Style="{StaticResource DangerButton}" Margin="4,0"
+                            IsEnabled="{Binding IsMounted}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="1" Margin="20">
+                <StackPanel VerticalAlignment="Top">
+                    <TextBlock Text="Select a category from the sidebar to begin." 
+                               Foreground="#5F6368" FontSize="15" Margin="0,40,0,20"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="#80868E" LineHeight="22" Text="1. Load or download a Windows ISO/WIM (Source tab)&#x0a;2. Mount the image to scan its contents&#x0a;3. Click each category to see items from the image&#x0a;4. Mark items: Remove / Keep / Untouched&#x0a;5. Apply changes — WinSxS cleaned automatically"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- BOTTOM BAR -->
+        <Border Grid.Column="1" Grid.Row="1" Background="#28292D" BorderBrush="#303336" BorderThickness="0,1,0,0" Padding="16,9">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Save Preset" Command="{Binding SavePresetCommand}"
+                        Style="{StaticResource ChromeButton}" Margin="4,0"/>
+                <Button Content="Load Preset" Command="{Binding LoadPresetCommand}"
+                        Style="{StaticResource ChromeButton}" Margin="4,0"/>
+                <Button Content="Apply All" Command="{Binding ApplyChangesCommand}"
+                        Style="{StaticResource AccentButton}" Margin="12,0,0,0"
+                        IsEnabled="{Binding IsMounted}" Padding="20,8"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
