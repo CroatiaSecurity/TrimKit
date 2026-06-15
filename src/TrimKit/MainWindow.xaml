@@ -6,7 +6,6 @@
         Height="800" Width="1250"
         MinHeight="680" MinWidth="1050"
         WindowStartupLocation="CenterScreen"
-        Icon="TrimKit.ico"
         Background="#FF202124"
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="13">
