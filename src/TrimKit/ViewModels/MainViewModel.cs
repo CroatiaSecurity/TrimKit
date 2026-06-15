@@ -860,6 +860,75 @@ public partial class MainViewModel : ObservableObject
                 _logService.Log(LogLevel.Warning, $"WinSxS cleanup: {ex.Message}");
             }
 
+            // Execute NTLite/WinReducer component map removals (file-level, service disable)
+            // This handles preset items that don't map to DISM operations (fonts by NTLite name, languages, drivers, etc.)
+            var allPresetRemoveItems = new List<PresetComponent>();
+            allPresetRemoveItems.AddRange(ProvisionedApps.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(Capabilities.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(Fonts.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(KeyboardLayouts.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(Languages.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+            allPresetRemoveItems.AddRange(InboxDrivers.Where(c => c.IsSelected).Select(c => new PresetComponent { Id = c.Id, Name = c.DisplayName }));
+
+            var resolvedPlan = NtLiteComponentMap.ResolvePreset(allPresetRemoveItems, installMountTarget);
+            if (resolvedPlan.TotalActions > 0)
+            {
+                StatusText = $"[install.wim] Executing {resolvedPlan.TotalActions} NTLite-mapped removal(s)...";
+                _logService.Log(LogLevel.Info,
+                    $"NTLite map: {resolvedPlan.FilesToDelete.Count} files, {resolvedPlan.DirectoriesToDelete.Count} dirs, " +
+                    $"{resolvedPlan.ServicesToDisable.Count} services, {resolvedPlan.AppsToRemove.Count} apps, " +
+                    $"{resolvedPlan.LanguagesToRemove.Count} languages, {resolvedPlan.DriversToRemove.Count} drivers");
+
+                // Delete files
+                foreach (var file in resolvedPlan.FilesToDelete)
+                {
+                    try { if (File.Exists(file)) File.Delete(file); } catch { }
+                }
+
+                // Delete directories (supports wildcard patterns like Microsoft.Xbox*)
+                foreach (var dir in resolvedPlan.DirectoriesToDelete)
+                {
+                    try
+                    {
+                        if (dir.Contains('*'))
+                        {
+                            var parent = Path.GetDirectoryName(dir) ?? installMountTarget;
+                            var pattern = Path.GetFileName(dir);
+                            if (Directory.Exists(parent))
+                            {
+                                foreach (var d in Directory.GetDirectories(parent, pattern))
+                                    Directory.Delete(d, true);
+                            }
+                        }
+                        else if (Directory.Exists(dir))
+                        {
+                            Directory.Delete(dir, true);
+                        }
+                    }
+                    catch { }
+                }
+
+                // Disable services
+                foreach (var svc in resolvedPlan.ServicesToDisable)
+                {
+                    try { await _serviceManager.SetServiceStartTypeAsync(installMountTarget, svc, ServiceStartType.Disabled); } catch { }
+                }
+
+                // Remove provisioned apps via DISM
+                foreach (var appId in resolvedPlan.AppsToRemove)
+                {
+                    try { await _componentRemovalService.RemoveProvisionedAppAsync(installMountTarget, appId); } catch { }
+                }
+
+                // Remove languages
+                foreach (var lang in resolvedPlan.LanguagesToRemove)
+                {
+                    try { await _componentRemovalService.RemoveLanguageAsync(installMountTarget, lang); } catch { }
+                }
+
+                _logService.Log(LogLevel.Success, $"NTLite-mapped removals complete ({resolvedPlan.TotalActions} actions)");
+            }
+
             // DISM image cleanup (shrinks WIM after component removal)
             StatusText = "[install.wim] Running DISM cleanup...";
             try

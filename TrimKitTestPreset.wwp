@@ -1,0 +1,689 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--TrimKit Preset - https://github.com/Gorstak/TrimKit-->
+<TrimKitPreset version="1.0">
+  <Metadata>
+    <Name>Test</Name>
+    <Description></Description>
+    <CreatedDate>2026-06-15T11:57:21.8194701+02:00</CreatedDate>
+    <SourceFormat>TrimKit</SourceFormat>
+    <TargetWindowsVersion></TargetWindowsVersion>
+  </Metadata>
+  <RemoveList>
+    <Component id="Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-StepsRecorder-Package" category="Package" />
+    <Component id="Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-StepsRecorder-Package" category="Package" />
+    <Component id="Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-StepsRecorder-Package" category="Package" />
+    <Component id="Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~en-US~10.0.28000.4" name="Microsoft-Windows-StepsRecorder-Package" category="Package" />
+    <Component id="Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~~10.0.28000.1362" name="Microsoft-Windows-StepsRecorder-Package" category="Package" />
+    <Component id="Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~~10.0.28000.4" name="Microsoft-Windows-StepsRecorder-Package" category="Package" />
+    <Component id="Clipchamp.Clipchamp_4.3.10120.0_neutral_~_yxz26nhyzhsrt" name="Microsoft.ApplicationCompatibilityEnhancements" category="Apps" />
+    <Component id="Microsoft.ApplicationCompatibilityEnhancements_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.AV1VideoExtension" category="Apps" />
+    <Component id="Microsoft.AV1VideoExtension_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.AVCEncoderVideoExtension" category="Apps" />
+    <Component id="Microsoft.AVCEncoderVideoExtension_2025.1111.513.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.BingSearch" category="Apps" />
+    <Component id="Microsoft.BingSearch_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.Copilot" category="Apps" />
+    <Component id="Microsoft.Copilot_2025.1111.514.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.HEIFImageExtension" category="Apps" />
+    <Component id="Microsoft.HEIFImageExtension_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.HEVCVideoExtension" category="Apps" />
+    <Component id="Microsoft.HEVCVideoExtension_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.MPEG2VideoExtension" category="Apps" />
+    <Component id="Microsoft.MPEG2VideoExtension_2025.1111.513.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.NET.Native.Framework.2.2" category="Apps" />
+    <Component id="Microsoft.OutlookForWindows_1.0.0.0_neutral__8wekyb3d8bbwe" name="Microsoft.Paint" category="Apps" />
+    <Component id="Microsoft.Paint_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.RawImageExtension" category="Apps" />
+    <Component id="Microsoft.RawImageExtension_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.ScreenSketch" category="Apps" />
+    <Component id="Microsoft.ScreenSketch_2025.1111.513.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.Services.Store.Engagement" category="Apps" />
+    <Component id="Microsoft.StartExperiencesApp_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.UI.Xaml.2.7" category="Apps" />
+    <Component id="Microsoft.VP9VideoExtensions_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.WebpImageExtension" category="Apps" />
+    <Component id="Microsoft.WebpImageExtension_2025.1111.513.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.WidgetsPlatformRuntime" category="Apps" />
+    <Component id="Microsoft.WidgetsPlatformRuntime_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.Windows.DevHome" category="Apps" />
+    <Component id="Microsoft.Windows.DevHome_2025.1111.513.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.WindowsAppRuntime.1.4" category="Apps" />
+    <Component id="Microsoft.WindowsCamera_2025.1111.512.0_neutral_~_8wekyb3d8bbwe" name="Microsoft.WindowsNotepad" category="Apps" />
+    <Component id="Microsoft.WindowsNotepad_2025.1111.515.0_neutral_~_8wekyb3d8bbwe" name="MicrosoftCorporationII.MicrosoftFamily" category="Apps" />
+    <Component id="MicrosoftCorporationII.MicrosoftFamily_2025.1111.514.0_neutral_~_8wekyb3d8bbwe" name="MicrosoftCorporationII.QuickAssist" category="Apps" />
+    <Component id="MicrosoftCorporationII.QuickAssist_2025.1111.513.0_neutral_~_8wekyb3d8bbwe" name="MicrosoftWindows.CrossDevice" category="Apps" />
+    <Component id="MicrosoftWindows.CrossDevice_2025.1111.514.0_neutral_~_cw5n1h2txyewy" name="MSTeams" category="Apps" />
+    <Component id="Accessibility.Braille~~~~0.0.1.0" name="Accessibility.Braille" category="Capabilities" />
+    <Component id="App.StepsRecorder~~~~0.0.1.0" name="App.StepsRecorder" category="Capabilities" />
+    <Component id="App.WirelessDisplay.Connect~~~~0.0.1.0" name="App.WirelessDisplay.Connect" category="Capabilities" />
+    <Component id="AzureArcSetup~~~~" name="AzureArcSetup" category="Capabilities" />
+    <Component id="Browser.InternetExplorer~~~~0.0.11.0" name="Browser.InternetExplorer" category="Capabilities" />
+    <Component id="DirectX.Configuration.Database~~~~0.0.1.0" name="DirectX.Configuration.Database" category="Capabilities" />
+    <Component id="Hello.Face.20134~~~~0.0.1.0" name="Hello.Face.20134" category="Capabilities" />
+    <Component id="Language.Basic~~~af-ZA~0.0.1.0" name="Language.Basic (af-ZA)" category="Capabilities" />
+    <Component id="Language.Basic~~~am-ET~0.0.1.0" name="Language.Basic (am-ET)" category="Capabilities" />
+    <Component id="Language.Basic~~~ar-SA~0.0.1.0" name="Language.Basic (ar-SA)" category="Capabilities" />
+    <Component id="Language.Basic~~~as-IN~0.0.1.0" name="Language.Basic (as-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~az-LATN-AZ~0.0.1.0" name="Language.Basic (az-LATN-AZ)" category="Capabilities" />
+    <Component id="Language.Basic~~~ba-RU~0.0.1.0" name="Language.Basic (ba-RU)" category="Capabilities" />
+    <Component id="Language.Basic~~~be-BY~0.0.1.0" name="Language.Basic (be-BY)" category="Capabilities" />
+    <Component id="Language.Basic~~~bg-BG~0.0.1.0" name="Language.Basic (bg-BG)" category="Capabilities" />
+    <Component id="Language.Basic~~~bn-BD~0.0.1.0" name="Language.Basic (bn-BD)" category="Capabilities" />
+    <Component id="Language.Basic~~~bn-IN~0.0.1.0" name="Language.Basic (bn-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~br-FR~0.0.1.0" name="Language.Basic (br-FR)" category="Capabilities" />
+    <Component id="Language.Basic~~~bs-LATN-BA~0.0.1.0" name="Language.Basic (bs-LATN-BA)" category="Capabilities" />
+    <Component id="Language.Basic~~~ca-ES~0.0.1.0" name="Language.Basic (ca-ES)" category="Capabilities" />
+    <Component id="Language.Basic~~~cs-CZ~0.0.1.0" name="Language.Basic (cs-CZ)" category="Capabilities" />
+    <Component id="Language.Basic~~~cy-GB~0.0.1.0" name="Language.Basic (cy-GB)" category="Capabilities" />
+    <Component id="Language.Basic~~~da-DK~0.0.1.0" name="Language.Basic (da-DK)" category="Capabilities" />
+    <Component id="Language.Basic~~~de-CH~0.0.1.0" name="Language.Basic (de-CH)" category="Capabilities" />
+    <Component id="Language.Basic~~~de-DE~0.0.1.0" name="Language.Basic (de-DE)" category="Capabilities" />
+    <Component id="Language.Basic~~~el-GR~0.0.1.0" name="Language.Basic (el-GR)" category="Capabilities" />
+    <Component id="Language.Basic~~~en-AU~0.0.1.0" name="Language.Basic (en-AU)" category="Capabilities" />
+    <Component id="Language.Basic~~~en-CA~0.0.1.0" name="Language.Basic (en-CA)" category="Capabilities" />
+    <Component id="Language.Basic~~~en-GB~0.0.1.0" name="Language.Basic (en-GB)" category="Capabilities" />
+    <Component id="Language.Basic~~~en-IN~0.0.1.0" name="Language.Basic (en-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~es-ES~0.0.1.0" name="Language.Basic (es-ES)" category="Capabilities" />
+    <Component id="Language.Basic~~~es-MX~0.0.1.0" name="Language.Basic (es-MX)" category="Capabilities" />
+    <Component id="Language.Basic~~~es-US~0.0.1.0" name="Language.Basic (es-US)" category="Capabilities" />
+    <Component id="Language.Basic~~~et-EE~0.0.1.0" name="Language.Basic (et-EE)" category="Capabilities" />
+    <Component id="Language.Basic~~~eu-ES~0.0.1.0" name="Language.Basic (eu-ES)" category="Capabilities" />
+    <Component id="Language.Basic~~~fa-IR~0.0.1.0" name="Language.Basic (fa-IR)" category="Capabilities" />
+    <Component id="Language.Basic~~~fi-FI~0.0.1.0" name="Language.Basic (fi-FI)" category="Capabilities" />
+    <Component id="Language.Basic~~~fil-PH~0.0.1.0" name="Language.Basic (fil-PH)" category="Capabilities" />
+    <Component id="Language.Basic~~~fo-FO~0.0.1.0" name="Language.Basic (fo-FO)" category="Capabilities" />
+    <Component id="Language.Basic~~~fr-BE~0.0.1.0" name="Language.Basic (fr-BE)" category="Capabilities" />
+    <Component id="Language.Basic~~~fr-CA~0.0.1.0" name="Language.Basic (fr-CA)" category="Capabilities" />
+    <Component id="Language.Basic~~~fr-CH~0.0.1.0" name="Language.Basic (fr-CH)" category="Capabilities" />
+    <Component id="Language.Basic~~~fr-FR~0.0.1.0" name="Language.Basic (fr-FR)" category="Capabilities" />
+    <Component id="Language.Basic~~~ga-IE~0.0.1.0" name="Language.Basic (ga-IE)" category="Capabilities" />
+    <Component id="Language.Basic~~~gd-GB~0.0.1.0" name="Language.Basic (gd-GB)" category="Capabilities" />
+    <Component id="Language.Basic~~~gl-ES~0.0.1.0" name="Language.Basic (gl-ES)" category="Capabilities" />
+    <Component id="Language.Basic~~~gu-IN~0.0.1.0" name="Language.Basic (gu-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~ha-LATN-NG~0.0.1.0" name="Language.Basic (ha-LATN-NG)" category="Capabilities" />
+    <Component id="Language.Basic~~~haw-US~0.0.1.0" name="Language.Basic (haw-US)" category="Capabilities" />
+    <Component id="Language.Basic~~~he-IL~0.0.1.0" name="Language.Basic (he-IL)" category="Capabilities" />
+    <Component id="Language.Basic~~~hi-IN~0.0.1.0" name="Language.Basic (hi-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~hr-HR~0.0.1.0" name="Language.Basic (hr-HR)" category="Capabilities" />
+    <Component id="Language.Basic~~~hu-HU~0.0.1.0" name="Language.Basic (hu-HU)" category="Capabilities" />
+    <Component id="Language.Basic~~~hy-AM~0.0.1.0" name="Language.Basic (hy-AM)" category="Capabilities" />
+    <Component id="Language.Basic~~~id-ID~0.0.1.0" name="Language.Basic (id-ID)" category="Capabilities" />
+    <Component id="Language.Basic~~~ig-NG~0.0.1.0" name="Language.Basic (ig-NG)" category="Capabilities" />
+    <Component id="Language.Basic~~~is-IS~0.0.1.0" name="Language.Basic (is-IS)" category="Capabilities" />
+    <Component id="Language.Basic~~~it-IT~0.0.1.0" name="Language.Basic (it-IT)" category="Capabilities" />
+    <Component id="Language.Basic~~~ja-JP~0.0.1.0" name="Language.Basic (ja-JP)" category="Capabilities" />
+    <Component id="Language.Basic~~~ka-GE~0.0.1.0" name="Language.Basic (ka-GE)" category="Capabilities" />
+    <Component id="Language.Basic~~~kk-KZ~0.0.1.0" name="Language.Basic (kk-KZ)" category="Capabilities" />
+    <Component id="Language.Basic~~~kl-GL~0.0.1.0" name="Language.Basic (kl-GL)" category="Capabilities" />
+    <Component id="Language.Basic~~~km-KH~0.0.1.0" name="Language.Basic (km-KH)" category="Capabilities" />
+    <Component id="Language.Basic~~~kn-IN~0.0.1.0" name="Language.Basic (kn-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~ko-KR~0.0.1.0" name="Language.Basic (ko-KR)" category="Capabilities" />
+    <Component id="Language.Basic~~~kok-DEVA-IN~0.0.1.0" name="Language.Basic (kok-DEVA-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~ky-KG~0.0.1.0" name="Language.Basic (ky-KG)" category="Capabilities" />
+    <Component id="Language.Basic~~~lb-LU~0.0.1.0" name="Language.Basic (lb-LU)" category="Capabilities" />
+    <Component id="Language.Basic~~~lo-LA~0.0.1.0" name="Language.Basic (lo-LA)" category="Capabilities" />
+    <Component id="Language.Basic~~~lt-LT~0.0.1.0" name="Language.Basic (lt-LT)" category="Capabilities" />
+    <Component id="Language.Basic~~~lv-LV~0.0.1.0" name="Language.Basic (lv-LV)" category="Capabilities" />
+    <Component id="Language.Basic~~~mi-NZ~0.0.1.0" name="Language.Basic (mi-NZ)" category="Capabilities" />
+    <Component id="Language.Basic~~~mk-MK~0.0.1.0" name="Language.Basic (mk-MK)" category="Capabilities" />
+    <Component id="Language.Basic~~~ml-IN~0.0.1.0" name="Language.Basic (ml-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~mn-MN~0.0.1.0" name="Language.Basic (mn-MN)" category="Capabilities" />
+    <Component id="Language.Basic~~~mr-IN~0.0.1.0" name="Language.Basic (mr-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~ms-BN~0.0.1.0" name="Language.Basic (ms-BN)" category="Capabilities" />
+    <Component id="Language.Basic~~~ms-MY~0.0.1.0" name="Language.Basic (ms-MY)" category="Capabilities" />
+    <Component id="Language.Basic~~~mt-MT~0.0.1.0" name="Language.Basic (mt-MT)" category="Capabilities" />
+    <Component id="Language.Basic~~~my-MM~0.0.1.0" name="Language.Basic (my-MM)" category="Capabilities" />
+    <Component id="Language.Basic~~~nb-NO~0.0.1.0" name="Language.Basic (nb-NO)" category="Capabilities" />
+    <Component id="Language.Basic~~~ne-NP~0.0.1.0" name="Language.Basic (ne-NP)" category="Capabilities" />
+    <Component id="Language.Basic~~~nl-NL~0.0.1.0" name="Language.Basic (nl-NL)" category="Capabilities" />
+    <Component id="Language.Basic~~~nn-NO~0.0.1.0" name="Language.Basic (nn-NO)" category="Capabilities" />
+    <Component id="Language.Basic~~~nso-ZA~0.0.1.0" name="Language.Basic (nso-ZA)" category="Capabilities" />
+    <Component id="Language.Basic~~~or-IN~0.0.1.0" name="Language.Basic (or-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~pa-ARAB-PK~0.0.1.0" name="Language.Basic (pa-ARAB-PK)" category="Capabilities" />
+    <Component id="Language.Basic~~~pa-IN~0.0.1.0" name="Language.Basic (pa-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~pl-PL~0.0.1.0" name="Language.Basic (pl-PL)" category="Capabilities" />
+    <Component id="Language.Basic~~~ps-AF~0.0.1.0" name="Language.Basic (ps-AF)" category="Capabilities" />
+    <Component id="Language.Basic~~~pt-BR~0.0.1.0" name="Language.Basic (pt-BR)" category="Capabilities" />
+    <Component id="Language.Basic~~~pt-PT~0.0.1.0" name="Language.Basic (pt-PT)" category="Capabilities" />
+    <Component id="Language.Basic~~~quc-LATN-GT~0.0.1.0" name="Language.Basic (quc-LATN-GT)" category="Capabilities" />
+    <Component id="Language.Basic~~~quz-LATN-BO~0.0.1.0" name="Language.Basic (quz-LATN-BO)" category="Capabilities" />
+    <Component id="Language.Basic~~~rm-CH~0.0.1.0" name="Language.Basic (rm-CH)" category="Capabilities" />
+    <Component id="Language.Basic~~~ro-RO~0.0.1.0" name="Language.Basic (ro-RO)" category="Capabilities" />
+    <Component id="Language.Basic~~~ru-RU~0.0.1.0" name="Language.Basic (ru-RU)" category="Capabilities" />
+    <Component id="Language.Basic~~~rw-RW~0.0.1.0" name="Language.Basic (rw-RW)" category="Capabilities" />
+    <Component id="Language.Basic~~~sah-RU~0.0.1.0" name="Language.Basic (sah-RU)" category="Capabilities" />
+    <Component id="Language.Basic~~~sd-ARAB-PK~0.0.1.0" name="Language.Basic (sd-ARAB-PK)" category="Capabilities" />
+    <Component id="Language.Basic~~~si-LK~0.0.1.0" name="Language.Basic (si-LK)" category="Capabilities" />
+    <Component id="Language.Basic~~~sk-SK~0.0.1.0" name="Language.Basic (sk-SK)" category="Capabilities" />
+    <Component id="Language.Basic~~~sl-SI~0.0.1.0" name="Language.Basic (sl-SI)" category="Capabilities" />
+    <Component id="Language.Basic~~~so-SO~0.0.1.0" name="Language.Basic (so-SO)" category="Capabilities" />
+    <Component id="Language.Basic~~~sq-AL~0.0.1.0" name="Language.Basic (sq-AL)" category="Capabilities" />
+    <Component id="Language.Basic~~~sr-CYRL-RS~0.0.1.0" name="Language.Basic (sr-CYRL-RS)" category="Capabilities" />
+    <Component id="Language.Basic~~~sr-LATN-RS~0.0.1.0" name="Language.Basic (sr-LATN-RS)" category="Capabilities" />
+    <Component id="Language.Basic~~~sv-SE~0.0.1.0" name="Language.Basic (sv-SE)" category="Capabilities" />
+    <Component id="Language.Basic~~~sw-KE~0.0.1.0" name="Language.Basic (sw-KE)" category="Capabilities" />
+    <Component id="Language.Basic~~~ta-IN~0.0.1.0" name="Language.Basic (ta-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~te-IN~0.0.1.0" name="Language.Basic (te-IN)" category="Capabilities" />
+    <Component id="Language.Basic~~~tg-CYRL-TJ~0.0.1.0" name="Language.Basic (tg-CYRL-TJ)" category="Capabilities" />
+    <Component id="Language.Basic~~~th-TH~0.0.1.0" name="Language.Basic (th-TH)" category="Capabilities" />
+    <Component id="Language.Basic~~~tk-TM~0.0.1.0" name="Language.Basic (tk-TM)" category="Capabilities" />
+    <Component id="Language.Basic~~~tn-ZA~0.0.1.0" name="Language.Basic (tn-ZA)" category="Capabilities" />
+    <Component id="Language.Basic~~~tr-TR~0.0.1.0" name="Language.Basic (tr-TR)" category="Capabilities" />
+    <Component id="Language.Basic~~~tt-RU~0.0.1.0" name="Language.Basic (tt-RU)" category="Capabilities" />
+    <Component id="Language.Basic~~~ug-CN~0.0.1.0" name="Language.Basic (ug-CN)" category="Capabilities" />
+    <Component id="Language.Basic~~~uk-UA~0.0.1.0" name="Language.Basic (uk-UA)" category="Capabilities" />
+    <Component id="Language.Basic~~~ur-PK~0.0.1.0" name="Language.Basic (ur-PK)" category="Capabilities" />
+    <Component id="Language.Basic~~~uz-LATN-UZ~0.0.1.0" name="Language.Basic (uz-LATN-UZ)" category="Capabilities" />
+    <Component id="Language.Basic~~~vi-VN~0.0.1.0" name="Language.Basic (vi-VN)" category="Capabilities" />
+    <Component id="Language.Basic~~~wo-SN~0.0.1.0" name="Language.Basic (wo-SN)" category="Capabilities" />
+    <Component id="Language.Basic~~~xh-ZA~0.0.1.0" name="Language.Basic (xh-ZA)" category="Capabilities" />
+    <Component id="Language.Basic~~~yo-NG~0.0.1.0" name="Language.Basic (yo-NG)" category="Capabilities" />
+    <Component id="Language.Basic~~~zh-CN~0.0.1.0" name="Language.Basic (zh-CN)" category="Capabilities" />
+    <Component id="Language.Basic~~~zh-HK~0.0.1.0" name="Language.Basic (zh-HK)" category="Capabilities" />
+    <Component id="Language.Basic~~~zh-TW~0.0.1.0" name="Language.Basic (zh-TW)" category="Capabilities" />
+    <Component id="Language.Basic~~~zu-ZA~0.0.1.0" name="Language.Basic (zu-ZA)" category="Capabilities" />
+    <Component id="Language.Fonts.Arab~~~und-ARAB~0.0.1.0" name="Language.Fonts.Arab (und-ARAB)" category="Capabilities" />
+    <Component id="Language.Fonts.Beng~~~und-BENG~0.0.1.0" name="Language.Fonts.Beng (und-BENG)" category="Capabilities" />
+    <Component id="Language.Fonts.Cans~~~und-CANS~0.0.1.0" name="Language.Fonts.Cans (und-CANS)" category="Capabilities" />
+    <Component id="Language.Fonts.Cher~~~und-CHER~0.0.1.0" name="Language.Fonts.Cher (und-CHER)" category="Capabilities" />
+    <Component id="Language.Fonts.Deva~~~und-DEVA~0.0.1.0" name="Language.Fonts.Deva (und-DEVA)" category="Capabilities" />
+    <Component id="Language.Fonts.Ethi~~~und-ETHI~0.0.1.0" name="Language.Fonts.Ethi (und-ETHI)" category="Capabilities" />
+    <Component id="Language.Fonts.Gujr~~~und-GUJR~0.0.1.0" name="Language.Fonts.Gujr (und-GUJR)" category="Capabilities" />
+    <Component id="Language.Fonts.Guru~~~und-GURU~0.0.1.0" name="Language.Fonts.Guru (und-GURU)" category="Capabilities" />
+    <Component id="Language.Fonts.Hans~~~und-HANS~0.0.1.0" name="Language.Fonts.Hans (und-HANS)" category="Capabilities" />
+    <Component id="Language.Fonts.Hant~~~und-HANT~0.0.1.0" name="Language.Fonts.Hant (und-HANT)" category="Capabilities" />
+    <Component id="Language.Fonts.Hebr~~~und-HEBR~0.0.1.0" name="Language.Fonts.Hebr (und-HEBR)" category="Capabilities" />
+    <Component id="Language.Fonts.Jpan~~~und-JPAN~0.0.1.0" name="Language.Fonts.Jpan (und-JPAN)" category="Capabilities" />
+    <Component id="Language.Fonts.Khmr~~~und-KHMR~0.0.1.0" name="Language.Fonts.Khmr (und-KHMR)" category="Capabilities" />
+    <Component id="Language.Fonts.Knda~~~und-KNDA~0.0.1.0" name="Language.Fonts.Knda (und-KNDA)" category="Capabilities" />
+    <Component id="Language.Fonts.Kore~~~und-KORE~0.0.1.0" name="Language.Fonts.Kore (und-KORE)" category="Capabilities" />
+    <Component id="Language.Fonts.Laoo~~~und-LAOO~0.0.1.0" name="Language.Fonts.Laoo (und-LAOO)" category="Capabilities" />
+    <Component id="Language.Fonts.Mlym~~~und-MLYM~0.0.1.0" name="Language.Fonts.Mlym (und-MLYM)" category="Capabilities" />
+    <Component id="Language.Fonts.Orya~~~und-ORYA~0.0.1.0" name="Language.Fonts.Orya (und-ORYA)" category="Capabilities" />
+    <Component id="Language.Fonts.PanEuropeanSupplementalFonts~~~~0.0.1.0" name="Language.Fonts.PanEuropeanSupplementalFonts" category="Capabilities" />
+    <Component id="Language.Fonts.Sinh~~~und-SINH~0.0.1.0" name="Language.Fonts.Sinh (und-SINH)" category="Capabilities" />
+    <Component id="Language.Fonts.Syrc~~~und-SYRC~0.0.1.0" name="Language.Fonts.Syrc (und-SYRC)" category="Capabilities" />
+    <Component id="Language.Fonts.Taml~~~und-TAML~0.0.1.0" name="Language.Fonts.Taml (und-TAML)" category="Capabilities" />
+    <Component id="Language.Fonts.Telu~~~und-TELU~0.0.1.0" name="Language.Fonts.Telu (und-TELU)" category="Capabilities" />
+    <Component id="Language.Fonts.Thai~~~und-THAI~0.0.1.0" name="Language.Fonts.Thai (und-THAI)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~af-ZA~0.0.1.0" name="Language.Handwriting (af-ZA)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ar-EG~0.0.1.0" name="Language.Handwriting (ar-EG)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~as-IN~0.0.1.0" name="Language.Handwriting (as-IN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~az-LATN-AZ~0.0.1.0" name="Language.Handwriting (az-LATN-AZ)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~be-BY~0.0.1.0" name="Language.Handwriting (be-BY)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~bg-BG~0.0.1.0" name="Language.Handwriting (bg-BG)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~bn-BD~0.0.1.0" name="Language.Handwriting (bn-BD)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~bn-IN~0.0.1.0" name="Language.Handwriting (bn-IN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~br-FR~0.0.1.0" name="Language.Handwriting (br-FR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~bs-LATN-BA~0.0.1.0" name="Language.Handwriting (bs-LATN-BA)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ca-ES~0.0.1.0" name="Language.Handwriting (ca-ES)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~co-FR~0.0.1.0" name="Language.Handwriting (co-FR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~cs-CZ~0.0.1.0" name="Language.Handwriting (cs-CZ)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~cy-GB~0.0.1.0" name="Language.Handwriting (cy-GB)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~da-DK~0.0.1.0" name="Language.Handwriting (da-DK)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~de-DE~0.0.1.0" name="Language.Handwriting (de-DE)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~el-GR~0.0.1.0" name="Language.Handwriting (el-GR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~en-GB~0.0.1.0" name="Language.Handwriting (en-GB)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~en-US~0.0.1.0" name="Language.Handwriting (en-US)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~es-ES~0.0.1.0" name="Language.Handwriting (es-ES)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~es-MX~0.0.1.0" name="Language.Handwriting (es-MX)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~et-EE~0.0.1.0" name="Language.Handwriting (et-EE)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~eu-ES~0.0.1.0" name="Language.Handwriting (eu-ES)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~fi-FI~0.0.1.0" name="Language.Handwriting (fi-FI)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~fil-PH~0.0.1.0" name="Language.Handwriting (fil-PH)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~fj-FJ~0.0.1.0" name="Language.Handwriting (fj-FJ)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~fr-FR~0.0.1.0" name="Language.Handwriting (fr-FR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ga-IE~0.0.1.0" name="Language.Handwriting (ga-IE)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~gd-GB~0.0.1.0" name="Language.Handwriting (gd-GB)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~gl-ES~0.0.1.0" name="Language.Handwriting (gl-ES)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~haw-US~0.0.1.0" name="Language.Handwriting (haw-US)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~he-IL~0.0.1.0" name="Language.Handwriting (he-IL)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~hi-IN~0.0.1.0" name="Language.Handwriting (hi-IN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~hr-HR~0.0.1.0" name="Language.Handwriting (hr-HR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~hu-HU~0.0.1.0" name="Language.Handwriting (hu-HU)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~id-ID~0.0.1.0" name="Language.Handwriting (id-ID)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~is-IS~0.0.1.0" name="Language.Handwriting (is-IS)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~it-IT~0.0.1.0" name="Language.Handwriting (it-IT)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ja-JP~0.0.1.0" name="Language.Handwriting (ja-JP)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~jv-LATN-ID~0.0.1.0" name="Language.Handwriting (jv-LATN-ID)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ki-KE~0.0.1.0" name="Language.Handwriting (ki-KE)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~kl-GL~0.0.1.0" name="Language.Handwriting (kl-GL)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~kn-IN~0.0.1.0" name="Language.Handwriting (kn-IN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ko-KR~0.0.1.0" name="Language.Handwriting (ko-KR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~lb-LU~0.0.1.0" name="Language.Handwriting (lb-LU)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~lt-LT~0.0.1.0" name="Language.Handwriting (lt-LT)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~lv-LV~0.0.1.0" name="Language.Handwriting (lv-LV)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~mg-MG~0.0.1.0" name="Language.Handwriting (mg-MG)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~mi-NZ~0.0.1.0" name="Language.Handwriting (mi-NZ)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ms-BN~0.0.1.0" name="Language.Handwriting (ms-BN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ms-MY~0.0.1.0" name="Language.Handwriting (ms-MY)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~nb-NO~0.0.1.0" name="Language.Handwriting (nb-NO)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~nl-NL~0.0.1.0" name="Language.Handwriting (nl-NL)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~nn-NO~0.0.1.0" name="Language.Handwriting (nn-NO)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~nso-ZA~0.0.1.0" name="Language.Handwriting (nso-ZA)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~oc-FR~0.0.1.0" name="Language.Handwriting (oc-FR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~pl-PL~0.0.1.0" name="Language.Handwriting (pl-PL)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~pt-BR~0.0.1.0" name="Language.Handwriting (pt-BR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~pt-PT~0.0.1.0" name="Language.Handwriting (pt-PT)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~quz-BO~0.0.1.0" name="Language.Handwriting (quz-BO)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~rm-CH~0.0.1.0" name="Language.Handwriting (rm-CH)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ro-RO~0.0.1.0" name="Language.Handwriting (ro-RO)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ru-RU~0.0.1.0" name="Language.Handwriting (ru-RU)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~rw-RW~0.0.1.0" name="Language.Handwriting (rw-RW)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sco-LATN~0.0.1.0" name="Language.Handwriting (sco-LATN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sk-SK~0.0.1.0" name="Language.Handwriting (sk-SK)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sl-SI~0.0.1.0" name="Language.Handwriting (sl-SI)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sn-LATN~0.0.1.0" name="Language.Handwriting (sn-LATN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~so-SO~0.0.1.0" name="Language.Handwriting (so-SO)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sq-AL~0.0.1.0" name="Language.Handwriting (sq-AL)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sr-CYRL-RS~0.0.1.0" name="Language.Handwriting (sr-CYRL-RS)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sr-LATN-RS~0.0.1.0" name="Language.Handwriting (sr-LATN-RS)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sv-SE~0.0.1.0" name="Language.Handwriting (sv-SE)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~sw-KE~0.0.1.0" name="Language.Handwriting (sw-KE)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~ta-IN~0.0.1.0" name="Language.Handwriting (ta-IN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~te-IN~0.0.1.0" name="Language.Handwriting (te-IN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~th-TH~0.0.1.0" name="Language.Handwriting (th-TH)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~tk-TM~0.0.1.0" name="Language.Handwriting (tk-TM)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~tn-ZA~0.0.1.0" name="Language.Handwriting (tn-ZA)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~tr-TR~0.0.1.0" name="Language.Handwriting (tr-TR)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~uk-UA~0.0.1.0" name="Language.Handwriting (uk-UA)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~uz-LATN-UZ~0.0.1.0" name="Language.Handwriting (uz-LATN-UZ)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~vi-VN~0.0.1.0" name="Language.Handwriting (vi-VN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~wo-SN~0.0.1.0" name="Language.Handwriting (wo-SN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~xh-ZA~0.0.1.0" name="Language.Handwriting (xh-ZA)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~zh-CN~0.0.1.0" name="Language.Handwriting (zh-CN)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~zh-HK~0.0.1.0" name="Language.Handwriting (zh-HK)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~zh-TW~0.0.1.0" name="Language.Handwriting (zh-TW)" category="Capabilities" />
+    <Component id="Language.Handwriting~~~zu-ZA~0.0.1.0" name="Language.Handwriting (zu-ZA)" category="Capabilities" />
+    <Component id="Language.OCR~~~ar-SA~0.0.1.0" name="Language.OCR (ar-SA)" category="Capabilities" />
+    <Component id="Language.OCR~~~bg-BG~0.0.1.0" name="Language.OCR (bg-BG)" category="Capabilities" />
+    <Component id="Language.OCR~~~bs-LATN-BA~0.0.1.0" name="Language.OCR (bs-LATN-BA)" category="Capabilities" />
+    <Component id="Language.OCR~~~cs-CZ~0.0.1.0" name="Language.OCR (cs-CZ)" category="Capabilities" />
+    <Component id="Language.OCR~~~da-DK~0.0.1.0" name="Language.OCR (da-DK)" category="Capabilities" />
+    <Component id="Language.OCR~~~de-DE~0.0.1.0" name="Language.OCR (de-DE)" category="Capabilities" />
+    <Component id="Language.OCR~~~el-GR~0.0.1.0" name="Language.OCR (el-GR)" category="Capabilities" />
+    <Component id="Language.OCR~~~en-GB~0.0.1.0" name="Language.OCR (en-GB)" category="Capabilities" />
+    <Component id="Language.OCR~~~en-US~0.0.1.0" name="Language.OCR (en-US)" category="Capabilities" />
+    <Component id="Language.OCR~~~es-ES~0.0.1.0" name="Language.OCR (es-ES)" category="Capabilities" />
+    <Component id="Language.OCR~~~es-MX~0.0.1.0" name="Language.OCR (es-MX)" category="Capabilities" />
+    <Component id="Language.OCR~~~fi-FI~0.0.1.0" name="Language.OCR (fi-FI)" category="Capabilities" />
+    <Component id="Language.OCR~~~fr-CA~0.0.1.0" name="Language.OCR (fr-CA)" category="Capabilities" />
+    <Component id="Language.OCR~~~fr-FR~0.0.1.0" name="Language.OCR (fr-FR)" category="Capabilities" />
+    <Component id="Language.OCR~~~hr-HR~0.0.1.0" name="Language.OCR (hr-HR)" category="Capabilities" />
+    <Component id="Language.OCR~~~hu-HU~0.0.1.0" name="Language.OCR (hu-HU)" category="Capabilities" />
+    <Component id="Language.OCR~~~it-IT~0.0.1.0" name="Language.OCR (it-IT)" category="Capabilities" />
+    <Component id="Language.OCR~~~ja-JP~0.0.1.0" name="Language.OCR (ja-JP)" category="Capabilities" />
+    <Component id="Language.OCR~~~ko-KR~0.0.1.0" name="Language.OCR (ko-KR)" category="Capabilities" />
+    <Component id="Language.OCR~~~nb-NO~0.0.1.0" name="Language.OCR (nb-NO)" category="Capabilities" />
+    <Component id="Language.OCR~~~nl-NL~0.0.1.0" name="Language.OCR (nl-NL)" category="Capabilities" />
+    <Component id="Language.OCR~~~pl-PL~0.0.1.0" name="Language.OCR (pl-PL)" category="Capabilities" />
+    <Component id="Language.OCR~~~pt-BR~0.0.1.0" name="Language.OCR (pt-BR)" category="Capabilities" />
+    <Component id="Language.OCR~~~pt-PT~0.0.1.0" name="Language.OCR (pt-PT)" category="Capabilities" />
+    <Component id="Language.OCR~~~ro-RO~0.0.1.0" name="Language.OCR (ro-RO)" category="Capabilities" />
+    <Component id="Language.OCR~~~ru-RU~0.0.1.0" name="Language.OCR (ru-RU)" category="Capabilities" />
+    <Component id="Language.OCR~~~sk-SK~0.0.1.0" name="Language.OCR (sk-SK)" category="Capabilities" />
+    <Component id="Language.OCR~~~sl-SI~0.0.1.0" name="Language.OCR (sl-SI)" category="Capabilities" />
+    <Component id="Language.OCR~~~sr-CYRL-RS~0.0.1.0" name="Language.OCR (sr-CYRL-RS)" category="Capabilities" />
+    <Component id="Language.OCR~~~sr-LATN-RS~0.0.1.0" name="Language.OCR (sr-LATN-RS)" category="Capabilities" />
+    <Component id="Language.OCR~~~sv-SE~0.0.1.0" name="Language.OCR (sv-SE)" category="Capabilities" />
+    <Component id="Language.OCR~~~tr-TR~0.0.1.0" name="Language.OCR (tr-TR)" category="Capabilities" />
+    <Component id="Language.OCR~~~zh-CN~0.0.1.0" name="Language.OCR (zh-CN)" category="Capabilities" />
+    <Component id="Language.OCR~~~zh-HK~0.0.1.0" name="Language.OCR (zh-HK)" category="Capabilities" />
+    <Component id="Language.OCR~~~zh-TW~0.0.1.0" name="Language.OCR (zh-TW)" category="Capabilities" />
+    <Component id="Language.Speech~~~da-DK~0.0.1.0" name="Language.Speech (da-DK)" category="Capabilities" />
+    <Component id="Language.Speech~~~de-DE~0.0.1.0" name="Language.Speech (de-DE)" category="Capabilities" />
+    <Component id="Language.Speech~~~en-AU~0.0.1.0" name="Language.Speech (en-AU)" category="Capabilities" />
+    <Component id="Language.Speech~~~en-CA~0.0.1.0" name="Language.Speech (en-CA)" category="Capabilities" />
+    <Component id="Language.Speech~~~en-GB~0.0.1.0" name="Language.Speech (en-GB)" category="Capabilities" />
+    <Component id="Language.Speech~~~en-IN~0.0.1.0" name="Language.Speech (en-IN)" category="Capabilities" />
+    <Component id="Language.Speech~~~en-US~0.0.1.0" name="Language.Speech (en-US)" category="Capabilities" />
+    <Component id="Language.Speech~~~es-ES~0.0.1.0" name="Language.Speech (es-ES)" category="Capabilities" />
+    <Component id="Language.Speech~~~es-MX~0.0.1.0" name="Language.Speech (es-MX)" category="Capabilities" />
+    <Component id="Language.Speech~~~fr-CA~0.0.1.0" name="Language.Speech (fr-CA)" category="Capabilities" />
+    <Component id="Language.Speech~~~fr-FR~0.0.1.0" name="Language.Speech (fr-FR)" category="Capabilities" />
+    <Component id="Language.Speech~~~it-IT~0.0.1.0" name="Language.Speech (it-IT)" category="Capabilities" />
+    <Component id="Language.Speech~~~ja-JP~0.0.1.0" name="Language.Speech (ja-JP)" category="Capabilities" />
+    <Component id="Language.Speech~~~pt-BR~0.0.1.0" name="Language.Speech (pt-BR)" category="Capabilities" />
+    <Component id="Language.Speech~~~zh-CN~0.0.1.0" name="Language.Speech (zh-CN)" category="Capabilities" />
+    <Component id="Language.Speech~~~zh-HK~0.0.1.0" name="Language.Speech (zh-HK)" category="Capabilities" />
+    <Component id="Language.Speech~~~zh-TW~0.0.1.0" name="Language.Speech (zh-TW)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ar-EG~0.0.1.0" name="Language.TextToSpeech (ar-EG)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ar-SA~0.0.1.0" name="Language.TextToSpeech (ar-SA)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~bg-BG~0.0.1.0" name="Language.TextToSpeech (bg-BG)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ca-ES~0.0.1.0" name="Language.TextToSpeech (ca-ES)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~cs-CZ~0.0.1.0" name="Language.TextToSpeech (cs-CZ)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~da-DK~0.0.1.0" name="Language.TextToSpeech (da-DK)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~de-AT~0.0.1.0" name="Language.TextToSpeech (de-AT)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~de-CH~0.0.1.0" name="Language.TextToSpeech (de-CH)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~de-DE~0.0.1.0" name="Language.TextToSpeech (de-DE)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~el-GR~0.0.1.0" name="Language.TextToSpeech (el-GR)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~en-AU~0.0.1.0" name="Language.TextToSpeech (en-AU)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~en-CA~0.0.1.0" name="Language.TextToSpeech (en-CA)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~en-GB~0.0.1.0" name="Language.TextToSpeech (en-GB)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~en-IE~0.0.1.0" name="Language.TextToSpeech (en-IE)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~en-IN~0.0.1.0" name="Language.TextToSpeech (en-IN)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~en-US~0.0.1.0" name="Language.TextToSpeech (en-US)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~es-ES~0.0.1.0" name="Language.TextToSpeech (es-ES)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~es-MX~0.0.1.0" name="Language.TextToSpeech (es-MX)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~fi-FI~0.0.1.0" name="Language.TextToSpeech (fi-FI)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~fr-CA~0.0.1.0" name="Language.TextToSpeech (fr-CA)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~fr-CH~0.0.1.0" name="Language.TextToSpeech (fr-CH)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~fr-FR~0.0.1.0" name="Language.TextToSpeech (fr-FR)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~he-IL~0.0.1.0" name="Language.TextToSpeech (he-IL)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~hi-IN~0.0.1.0" name="Language.TextToSpeech (hi-IN)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~hr-HR~0.0.1.0" name="Language.TextToSpeech (hr-HR)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~hu-HU~0.0.1.0" name="Language.TextToSpeech (hu-HU)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~id-ID~0.0.1.0" name="Language.TextToSpeech (id-ID)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~it-IT~0.0.1.0" name="Language.TextToSpeech (it-IT)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ja-JP~0.0.1.0" name="Language.TextToSpeech (ja-JP)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ko-KR~0.0.1.0" name="Language.TextToSpeech (ko-KR)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ms-MY~0.0.1.0" name="Language.TextToSpeech (ms-MY)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~nb-NO~0.0.1.0" name="Language.TextToSpeech (nb-NO)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~nl-BE~0.0.1.0" name="Language.TextToSpeech (nl-BE)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~nl-NL~0.0.1.0" name="Language.TextToSpeech (nl-NL)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~pl-PL~0.0.1.0" name="Language.TextToSpeech (pl-PL)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~pt-BR~0.0.1.0" name="Language.TextToSpeech (pt-BR)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~pt-PT~0.0.1.0" name="Language.TextToSpeech (pt-PT)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ro-RO~0.0.1.0" name="Language.TextToSpeech (ro-RO)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ru-RU~0.0.1.0" name="Language.TextToSpeech (ru-RU)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~sk-SK~0.0.1.0" name="Language.TextToSpeech (sk-SK)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~sl-SI~0.0.1.0" name="Language.TextToSpeech (sl-SI)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~sv-SE~0.0.1.0" name="Language.TextToSpeech (sv-SE)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~ta-IN~0.0.1.0" name="Language.TextToSpeech (ta-IN)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~th-TH~0.0.1.0" name="Language.TextToSpeech (th-TH)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~tr-TR~0.0.1.0" name="Language.TextToSpeech (tr-TR)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~vi-VN~0.0.1.0" name="Language.TextToSpeech (vi-VN)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~zh-CN~0.0.1.0" name="Language.TextToSpeech (zh-CN)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~zh-HK~0.0.1.0" name="Language.TextToSpeech (zh-HK)" category="Capabilities" />
+    <Component id="Language.TextToSpeech~~~zh-TW~0.0.1.0" name="Language.TextToSpeech (zh-TW)" category="Capabilities" />
+    <Component id="MathRecognizer~~~~0.0.1.0" name="MathRecognizer" category="Capabilities" />
+    <Component id="Media.WindowsMediaPlayer~~~~0.0.12.0" name="Media.WindowsMediaPlayer" category="Capabilities" />
+    <Component id="Microsoft.Onecore.StorageManagement~~~~0.0.1.0" name="Microsoft.Onecore.StorageManagement" category="Capabilities" />
+    <Component id="Microsoft.Wallpapers.Extended~~~~0.0.1.0" name="Microsoft.Wallpapers.Extended" category="Capabilities" />
+    <Component id="Microsoft.WebDriver~~~~0.0.1.0" name="Microsoft.WebDriver" category="Capabilities" />
+    <Component id="Microsoft.Windows.Console.Legacy~~~~" name="Microsoft.Windows.Console.Legacy" category="Capabilities" />
+    <Component id="Microsoft.Windows.Ethernet.Client.Intel.E1i68x64~~~~0.0.1.0" name="Microsoft.Windows.Ethernet.Client.Intel.E1i68x64" category="Capabilities" />
+    <Component id="Microsoft.Windows.Ethernet.Client.Intel.E2f68~~~~0.0.1.0" name="Microsoft.Windows.Ethernet.Client.Intel.E2f68" category="Capabilities" />
+    <Component id="Microsoft.Windows.Ethernet.Client.Realtek.Rtcx21x64~~~~0.0.1.0" name="Microsoft.Windows.Ethernet.Client.Realtek.Rtcx21x64" category="Capabilities" />
+    <Component id="Microsoft.Windows.Ethernet.Client.Vmware.Vmxnet3~~~~0.0.1.0" name="Microsoft.Windows.Ethernet.Client.Vmware.Vmxnet3" category="Capabilities" />
+    <Component id="Microsoft.Windows.Notepad.System~~~~0.0.1.0" name="Microsoft.Windows.Notepad.System" category="Capabilities" />
+    <Component id="Microsoft.Windows.PowerShell.ISE~~~~0.0.1.0" name="Microsoft.Windows.PowerShell.ISE" category="Capabilities" />
+    <Component id="Microsoft.Windows.Sense.Client~~~~" name="Microsoft.Windows.Sense.Client" category="Capabilities" />
+    <Component id="Microsoft.Windows.StorageManagement~~~~0.0.1.0" name="Microsoft.Windows.StorageManagement" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Broadcom.Bcmpciedhd63~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Broadcom.Bcmpciedhd63" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Broadcom.Bcmwl63al~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Broadcom.Bcmwl63al" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Broadcom.Bcmwl63a~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Broadcom.Bcmwl63a" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwbw02~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwbw02" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwew00~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwew00" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwew01~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwew01" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwlv64~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwlv64" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwns64~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwns64" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwsw00~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwsw00" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwtw02~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwtw02" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwtw04~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwtw04" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwtw06~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwtw06" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwtw08~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwtw08" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Intel.Netwtw10~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Intel.Netwtw10" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Marvel.Mrvlpcie8897~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Marvel.Mrvlpcie8897" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Qualcomm.Athw8x~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Qualcomm.Athw8x" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Qualcomm.Athwnx~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Qualcomm.Athwnx" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Qualcomm.Qcamain10x64~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Qualcomm.Qcamain10x64" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Ralink.Netr28x~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Ralink.Netr28x" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtl8187se~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtl8187se" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtl8192se~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtl8192se" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtl819xp~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtl819xp" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtl85n64~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtl85n64" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtwlane01~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtwlane01" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtwlane13~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtwlane13" category="Capabilities" />
+    <Component id="Microsoft.Windows.Wifi.Client.Realtek.Rtwlane~~~~0.0.1.0" name="Microsoft.Windows.Wifi.Client.Realtek.Rtwlane" category="Capabilities" />
+    <Component id="Msix.PackagingTool.Driver~~~~0.0.1.0" name="Msix.PackagingTool.Driver" category="Capabilities" />
+    <Component id="Network.Irda~~~~0.0.1.0" name="Network.Irda" category="Capabilities" />
+    <Component id="OneCoreUAP.OneSync~~~~0.0.1.0" name="OneCoreUAP.OneSync" category="Capabilities" />
+    <Component id="OpenSSH.Client~~~~0.0.1.0" name="OpenSSH.Client" category="Capabilities" />
+    <Component id="OpenSSH.Server~~~~0.0.1.0" name="OpenSSH.Server" category="Capabilities" />
+    <Component id="Print.Fax.Scan~~~~0.0.1.0" name="Print.Fax.Scan" category="Capabilities" />
+    <Component id="Print.Management.Console~~~~0.0.1.0" name="Print.Management.Console" category="Capabilities" />
+    <Component id="RasCMAK.Client~~~~0.0.1.0" name="RasCMAK.Client" category="Capabilities" />
+    <Component id="RIP.Listener~~~~0.0.1.0" name="RIP.Listener" category="Capabilities" />
+    <Component id="Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0" name="Rsat.ActiveDirectory.DS-LDS.Tools" category="Capabilities" />
+    <Component id="Rsat.AzureStack.HCI.Management.Tools~~~~0.0.1.0" name="Rsat.AzureStack.HCI.Management.Tools" category="Capabilities" />
+    <Component id="Rsat.BitLocker.Recovery.Tools~~~~0.0.1.0" name="Rsat.BitLocker.Recovery.Tools" category="Capabilities" />
+    <Component id="Rsat.CertificateServices.Tools~~~~0.0.1.0" name="Rsat.CertificateServices.Tools" category="Capabilities" />
+    <Component id="Rsat.DHCP.Tools~~~~0.0.1.0" name="Rsat.DHCP.Tools" category="Capabilities" />
+    <Component id="Rsat.Dns.Tools~~~~0.0.1.0" name="Rsat.Dns.Tools" category="Capabilities" />
+    <Component id="Rsat.FailoverCluster.Management.Tools~~~~0.0.1.0" name="Rsat.FailoverCluster.Management.Tools" category="Capabilities" />
+    <Component id="Rsat.FileServices.Tools~~~~0.0.1.0" name="Rsat.FileServices.Tools" category="Capabilities" />
+    <Component id="Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0" name="Rsat.GroupPolicy.Management.Tools" category="Capabilities" />
+    <Component id="Rsat.IPAM.Client.Tools~~~~0.0.1.0" name="Rsat.IPAM.Client.Tools" category="Capabilities" />
+    <Component id="Rsat.LLDP.Tools~~~~0.0.1.0" name="Rsat.LLDP.Tools" category="Capabilities" />
+    <Component id="Rsat.NetworkController.Tools~~~~0.0.1.0" name="Rsat.NetworkController.Tools" category="Capabilities" />
+    <Component id="Rsat.NetworkLoadBalancing.Tools~~~~0.0.1.0" name="Rsat.NetworkLoadBalancing.Tools" category="Capabilities" />
+    <Component id="Rsat.RemoteAccess.Management.Tools~~~~0.0.1.0" name="Rsat.RemoteAccess.Management.Tools" category="Capabilities" />
+    <Component id="Rsat.RemoteDesktop.Services.Tools~~~~0.0.1.0" name="Rsat.RemoteDesktop.Services.Tools" category="Capabilities" />
+    <Component id="Rsat.ServerManager.Tools~~~~0.0.1.0" name="Rsat.ServerManager.Tools" category="Capabilities" />
+    <Component id="Rsat.StorageMigrationService.Management.Tools~~~~0.0.1.0" name="Rsat.StorageMigrationService.Management.Tools" category="Capabilities" />
+    <Component id="Rsat.StorageReplica.Tools~~~~0.0.1.0" name="Rsat.StorageReplica.Tools" category="Capabilities" />
+    <Component id="Rsat.SystemInsights.Management.Tools~~~~0.0.1.0" name="Rsat.SystemInsights.Management.Tools" category="Capabilities" />
+    <Component id="Rsat.VolumeActivation.Tools~~~~0.0.1.0" name="Rsat.VolumeActivation.Tools" category="Capabilities" />
+    <Component id="Rsat.WSUS.Tools~~~~0.0.1.0" name="Rsat.WSUS.Tools" category="Capabilities" />
+    <Component id="SNMP.Client~~~~0.0.1.0" name="SNMP.Client" category="Capabilities" />
+    <Component id="Tools.DeveloperMode.Core~~~~0.0.1.0" name="Tools.DeveloperMode.Core" category="Capabilities" />
+    <Component id="Tools.Graphics.DirectX~~~~0.0.1.0" name="Tools.Graphics.DirectX" category="Capabilities" />
+    <Component id="Tpm.TpmDiagnostics~~~~0.0.1.0" name="Tpm.TpmDiagnostics" category="Capabilities" />
+    <Component id="VBSCRIPT~~~~" name="VBSCRIPT" category="Capabilities" />
+    <Component id="Windows.Desktop.EMS-SAC.Tools~~~~0.0.1.0" name="Windows.Desktop.EMS-SAC.Tools" category="Capabilities" />
+    <Component id="Windows.Kernel.LA57~~~~0.0.1.0" name="Windows.Kernel.LA57" category="Capabilities" />
+    <Component id="WMI-SNMP-Provider.Client~~~~0.0.1.0" name="WMI-SNMP-Provider.Client" category="Capabilities" />
+    <Component id="XPS.Viewer~~~~0.0.1.0" name="XPS.Viewer" category="Capabilities" />
+  </RemoveList>
+  <KeepList>
+    <Component id="Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package" category="Package" />
+    <Component id="Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package" category="Package" />
+    <Component id="Microsoft-OneCore-DirectX-Database-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-OneCore-DirectX-Database-FOD-Package" category="Package" />
+    <Component id="Microsoft-OneCore-DirectX-Database-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-OneCore-DirectX-Database-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.1362" name="Microsoft-Windows-Client-LanguagePack-Package" category="Package" />
+    <Component id="Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-Client-LanguagePack-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-FodMetadata-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-FodMetadata-Package" category="Package" />
+    <Component id="Microsoft-Windows-FodMetadataServicing-Desktop-CompDB-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-FodMetadataServicing-Desktop-CompDB-Package" category="Package" />
+    <Component id="Microsoft-Windows-FodMetadataServicing-Desktop-Metadata-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-FodMetadataServicing-Desktop-Metadata-Package" category="Package" />
+    <Component id="Microsoft-Windows-Foundation-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Foundation-Package" category="Package" />
+    <Component id="Microsoft-Windows-Hello-Face-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Hello-Face-Package" category="Package" />
+    <Component id="Microsoft-Windows-Hello-Face-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Hello-Face-Package" category="Package" />
+    <Component id="Microsoft-Windows-Kernel-LA57-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Kernel-LA57-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Kernel-LA57-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Kernel-LA57-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-LanguageFeatures-Basic-en-us-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-LanguageFeatures-Basic-en-us-Package" category="Package" />
+    <Component id="Microsoft-Windows-LanguageFeatures-Basic-en-us-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-LanguageFeatures-Basic-en-us-Package" category="Package" />
+    <Component id="Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package" category="Package" />
+    <Component id="Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package" category="Package" />
+    <Component id="Microsoft-Windows-LanguageFeatures-OCR-en-us-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-LanguageFeatures-OCR-en-us-Package" category="Package" />
+    <Component id="Microsoft-Windows-LanguageFeatures-OCR-en-us-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-LanguageFeatures-OCR-en-us-Package" category="Package" />
+    <Component id="Microsoft-Windows-Licenses-Core-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-Licenses-Core-Package" category="Package" />
+    <Component id="Microsoft-Windows-Licenses-Core-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Licenses-Core-Package" category="Package" />
+    <Component id="Microsoft-Windows-Licenses-Professional-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-Licenses-Professional-Package" category="Package" />
+    <Component id="Microsoft-Windows-Licenses-Professional-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Licenses-Professional-Package" category="Package" />
+    <Component id="Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-Notepad-System-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Notepad-System-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Notepad-System-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~en-US~10.0.28000.4" name="Microsoft-Windows-Notepad-System-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.28000.1362" name="Microsoft-Windows-Notepad-System-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.28000.4" name="Microsoft-Windows-Notepad-System-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-PowerShell-ISE-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-PowerShell-ISE-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-PowerShell-ISE-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~en-US~10.0.28000.4" name="Microsoft-Windows-PowerShell-ISE-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~~10.0.28000.1362" name="Microsoft-Windows-PowerShell-ISE-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~~10.0.28000.4" name="Microsoft-Windows-PowerShell-ISE-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.28000.4" name="Microsoft-Windows-VBSCRIPT-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-VBSCRIPT-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-VBSCRIPT-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~en-US~10.0.28000.4" name="Microsoft-Windows-VBSCRIPT-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~~10.0.28000.1362" name="Microsoft-Windows-VBSCRIPT-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~~10.0.28000.4" name="Microsoft-Windows-VBSCRIPT-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.1362" name="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package" category="Package" />
+    <Component id="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package~31bf3856ad364e35~amd64~~10.0.28000.4" name="Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package" category="Package" />
+    <Component id="Package_for_KB5073122~31bf3856ad364e35~amd64~~28000.1297.1.3" name="Package_for_KB5073122" category="Package" />
+    <Component id="Package_for_RollupFix~31bf3856ad364e35~amd64~~28000.1362.1.1" name="Package_for_RollupFix" category="Package" />
+    <Component id="Package_for_ServicingStack_1362~31bf3856ad364e35~amd64~~28000.1362.1.0" name="Package_for_ServicingStack_1362" category="Package" />
+    <Component id="Language.Basic~~~en-US~0.0.1.0" name="Language.Basic (en-US)" category="Capabilities" />
+  </KeepList>
+  <Features />
+  <RegistryTweaks>
+    <Tweak name="Disable Telemetry" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\DataCollection" valueName="AllowTelemetry" valueType="DWord" value="0" />
+    <Tweak name="Disable Activity History" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\System" valueName="EnableActivityFeed" valueType="DWord" value="0" />
+    <Tweak name="Disable Activity History Upload" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\System" valueName="UploadUserActivities" valueType="DWord" value="0" />
+    <Tweak name="Disable Advertising ID" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AdvertisingInfo" valueName="DisabledByGroupPolicy" valueType="DWord" value="1" />
+    <Tweak name="Disable Location Tracking" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\LocationAndSensors" valueName="DisableLocation" valueType="DWord" value="1" />
+    <Tweak name="Disable Contacts Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessContacts" valueType="DWord" value="2" />
+    <Tweak name="Disable Calendar Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessCalendar" valueType="DWord" value="2" />
+    <Tweak name="Disable Call History Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessCallHistory" valueType="DWord" value="2" />
+    <Tweak name="Disable Email Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessEmail" valueType="DWord" value="2" />
+    <Tweak name="Disable Messaging Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessMessaging" valueType="DWord" value="2" />
+    <Tweak name="Disable Notification Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessNotifications" valueType="DWord" value="2" />
+    <Tweak name="Disable Account Info Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessAccountInfo" valueType="DWord" value="2" />
+    <Tweak name="Disable Motion Data Access" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsAccessMotion" valueType="DWord" value="2" />
+    <Tweak name="Disable Diagnostic Data Viewer" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\DataCollection" valueName="DisableDiagnosticDataViewer" valueType="DWord" value="1" />
+    <Tweak name="Disable Feedback Requests" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\Windows\DataCollection" valueName="DoNotShowFeedbackNotifications" valueType="DWord" value="1" />
+    <Tweak name="Disable Inking &amp; Typing Data" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\InputPersonalization" valueName="RestrictImplicitInkCollection" valueType="DWord" value="1" />
+    <Tweak name="Disable Speech Recognition Online" category="Privacy" hive="SOFTWARE" key="Policies\Microsoft\InputPersonalization" valueName="AllowInputPersonalization" valueType="DWord" value="0" />
+    <Tweak name="Disable CEIP" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\SQMClient\Windows" valueName="CEIPEnable" valueType="DWord" value="0" />
+    <Tweak name="Disable App Telemetry" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppCompat" valueName="AITEnable" valueType="DWord" value="0" />
+    <Tweak name="Disable Inventory Collector" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppCompat" valueName="DisableInventory" valueType="DWord" value="1" />
+    <Tweak name="Disable Steps Recorder" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppCompat" valueName="DisableUAR" valueType="DWord" value="1" />
+    <Tweak name="Disable Error Reporting" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Error Reporting" valueName="Disabled" valueType="DWord" value="1" />
+    <Tweak name="Disable KMS Client Telemetry" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform" valueName="NoGenTicket" valueType="DWord" value="1" />
+    <Tweak name="Disable License Telemetry" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows\CurrentVersion\Policies\DataCollection" valueName="AllowTelemetry" valueType="DWord" value="0" />
+    <Tweak name="Disable Connected User Experiences" category="Telemetry" hive="SOFTWARE" key="Policies\Microsoft\Windows\DataCollection" valueName="DisableOneSettingsDownloads" valueType="DWord" value="1" />
+    <Tweak name="Disable Superfetch/SysMain" category="Performance" hive="SYSTEM" key="ControlSet001\Services\SysMain" valueName="Start" valueType="DWord" value="4" />
+    <Tweak name="Disable Windows Search Indexer" category="Performance" hive="SYSTEM" key="ControlSet001\Services\WSearch" valueName="Start" valueType="DWord" value="4" />
+    <Tweak name="Disable Prefetch" category="Performance" hive="SOFTWARE" key="Microsoft\Windows NT\CurrentVersion\Prefetcher" valueName="EnablePrefetcher" valueType="DWord" value="0" />
+    <Tweak name="Disable Paging Executive" category="Performance" hive="SYSTEM" key="ControlSet001\Control\Session Manager\Memory Management" valueName="DisablePagingExecutive" valueType="DWord" value="1" />
+    <Tweak name="Large System Cache" category="Performance" hive="SYSTEM" key="ControlSet001\Control\Session Manager\Memory Management" valueName="LargeSystemCache" valueType="DWord" value="1" />
+    <Tweak name="Optimize NTFS Memory Usage" category="Performance" hive="SYSTEM" key="ControlSet001\Control\FileSystem" valueName="NtfsMemoryUsage" valueType="DWord" value="2" />
+    <Tweak name="Disable Last Access Timestamp" category="Performance" hive="SYSTEM" key="ControlSet001\Control\FileSystem" valueName="NtfsDisableLastAccessUpdate" valueType="DWord" value="2147483649" />
+    <Tweak name="Disable 8.3 Name Creation" category="Performance" hive="SYSTEM" key="ControlSet001\Control\FileSystem" valueName="NtfsDisable8dot3NameCreation" valueType="DWord" value="1" />
+    <Tweak name="Set Foreground Priority" category="Performance" hive="SOFTWARE" key="Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" valueName="SystemResponsiveness" valueType="DWord" value="0" />
+    <Tweak name="Disable Background Apps" category="Performance" hive="SOFTWARE" key="Policies\Microsoft\Windows\AppPrivacy" valueName="LetAppsRunInBackground" valueType="DWord" value="2" />
+    <Tweak name="Disable Startup Delay" category="Performance" hive="SOFTWARE" key="Microsoft\Windows\CurrentVersion\Explorer\Serialize" valueName="StartupDelayInMSec" valueType="DWord" value="0" />
+    <Tweak name="Disable Hibernation File" category="Performance" hive="SYSTEM" key="ControlSet001\Control\Power" valueName="HibernateEnabled" valueType="DWord" value="0" />
+    <Tweak name="Optimize Visual Effects for Performance" category="Performance" hive="SOFTWARE" key="Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" valueName="VisualFXSetting" valueType="DWord" value="2" />
+    <Tweak name="Disable Nagle's Algorithm" category="Network" hive="SOFTWARE" key="Policies\Microsoft\Windows\Psched" valueName="NonBestEffortLimit" valueType="DWord" value="0" />
+    <Tweak name="Disable Auto-Tuning Level" category="Network" hive="SYSTEM" key="ControlSet001\Services\AFD\Parameters" valueName="EnableDCA" valueType="DWord" value="1" />
+    <Tweak name="Disable WiFi Sense" category="Network" hive="SOFTWARE" key="Microsoft\WcmSvc\wifinetworkmanager\config" valueName="AutoConnectAllowedOEM" valueType="DWord" value="0" />
+    <Tweak name="Disable Hotspot 2.0" category="Network" hive="SOFTWARE" key="Microsoft\WlanSvc\AnqpCache" valueName="OsuRegistrationStatus" valueType="DWord" value="0" />
+    <Tweak name="Disable Peer-to-Peer Updates" category="Network" hive="SOFTWARE" key="Policies\Microsoft\Windows\DeliveryOptimization" valueName="DODownloadMode" valueType="DWord" value="0" />
+    <Tweak name="Show File Extensions" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="HideFileExt" valueType="DWord" value="0" />
+    <Tweak name="Show Hidden Files" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="Hidden" valueType="DWord" value="1" />
+    <Tweak name="Launch Explorer to This PC" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="LaunchTo" valueType="DWord" value="1" />
+    <Tweak name="Classic Right-Click Menu (Win11)" category="Explorer" hive="SOFTWARE" key="Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" valueName="" valueType="String" value="" />
+    <Tweak name="Disable Thumbnail Cache" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="DisableThumbnailCache" valueType="DWord" value="1" />
+    <Tweak name="Disable Quick Access Recent Files" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer" valueName="ShowRecent" valueType="DWord" value="0" />
+    <Tweak name="Disable Quick Access Frequent Folders" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer" valueName="ShowFrequent" valueType="DWord" value="0" />
+    <Tweak name="Disable Sharing Wizard" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="SharingWizardOn" valueType="DWord" value="0" />
+    <Tweak name="Expand Navigation Pane to Current Folder" category="Explorer" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="NavPaneExpandToCurrentFolder" valueType="DWord" value="1" />
+    <Tweak name="Disable Aero Shake" category="Explorer" hive="SOFTWARE" key="Policies\Microsoft\Windows\Explorer" valueName="NoWindowMinimizingShortcuts" valueType="DWord" value="1" />
+    <Tweak name="Disable Widgets (Win11)" category="UI" hive="SOFTWARE" key="Policies\Microsoft\Dsh" valueName="AllowNewsAndInterests" valueType="DWord" value="0" />
+    <Tweak name="Disable Chat Icon (Win11)" category="UI" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Chat" valueName="ChatIcon" valueType="DWord" value="3" />
+    <Tweak name="Disable Copilot (Win11)" category="UI" hive="SOFTWARE" key="Policies\Microsoft\Windows\WindowsCopilot" valueName="TurnOffWindowsCopilot" valueType="DWord" value="1" />
+    <Tweak name="Disable Task View Button" category="UI" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="ShowTaskViewButton" valueType="DWord" value="0" />
+    <Tweak name="Disable Snap Assist" category="UI" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="SnapAssist" valueType="DWord" value="0" />
+    <Tweak name="Disable Lock Screen Tips" category="UI" hive="SOFTWARE" key="Policies\Microsoft\Windows\CloudContent" valueName="DisableWindowsSpotlightFeatures" valueType="DWord" value="1" />
+    <Tweak name="Disable Suggested Content in Settings" category="UI" hive="SOFTWARE" key="Policies\Microsoft\Windows\CloudContent" valueName="DisableCloudOptimizedContent" valueType="DWord" value="1" />
+    <Tweak name="Disable Start Menu Suggestions" category="UI" hive="SOFTWARE" key="Policies\Microsoft\Windows\CloudContent" valueName="DisableWindowsConsumerFeatures" valueType="DWord" value="1" />
+    <Tweak name="Small Taskbar Icons" category="UI" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="TaskbarSmallIcons" valueType="DWord" value="1" />
+    <Tweak name="Disable Remote Desktop" category="Security" hive="SOFTWARE" key="Policies\Microsoft\Windows NT\Terminal Services" valueName="fDenyTSConnections" valueType="DWord" value="1" />
+    <Tweak name="Disable Remote Assistance" category="Security" hive="SOFTWARE" key="Policies\Microsoft\Windows NT\Terminal Services" valueName="fAllowUnsolicited" valueType="DWord" value="0" />
+    <Tweak name="Disable AutoRun/AutoPlay" category="Security" hive="SOFTWARE" key="Policies\Microsoft\Windows\Explorer" valueName="NoAutorun" valueType="DWord" value="1" />
+    <Tweak name="Disable Admin Shares" category="Security" hive="SYSTEM" key="ControlSet001\Services\LanmanServer\Parameters" valueName="AutoShareWks" valueType="DWord" value="0" />
+    <Tweak name="Disable SMBv1 Protocol" category="Security" hive="SYSTEM" key="ControlSet001\Services\LanmanServer\Parameters" valueName="SMB1" valueType="DWord" value="0" />
+    <Tweak name="Disable NetBIOS over TCP/IP" category="Security" hive="SYSTEM" key="ControlSet001\Services\NetBT\Parameters" valueName="EnableNetbIOS" valueType="DWord" value="2" />
+    <Tweak name="Disable LLMNR" category="Security" hive="SOFTWARE" key="Policies\Microsoft\Windows NT\DNSClient" valueName="EnableMulticast" valueType="DWord" value="0" />
+    <Tweak name="Disable WDigest Authentication" category="Security" hive="SYSTEM" key="ControlSet001\Control\SecurityProviders\WDigest" valueName="UseLogonCredential" valueType="DWord" value="0" />
+    <Tweak name="Disable Auto-Restart for Updates" category="Updates" hive="SOFTWARE" key="Policies\Microsoft\Windows\WindowsUpdate\AU" valueName="NoAutoRebootWithLoggedOnUsers" valueType="DWord" value="1" />
+    <Tweak name="Disable Automatic Updates" category="Updates" hive="SOFTWARE" key="Policies\Microsoft\Windows\WindowsUpdate\AU" valueName="AUOptions" valueType="DWord" value="2" />
+    <Tweak name="Disable Update Delivery Optimization" category="Updates" hive="SOFTWARE" key="Policies\Microsoft\Windows\DeliveryOptimization" valueName="DODownloadMode" valueType="DWord" value="0" />
+    <Tweak name="Disable Driver Updates via Windows Update" category="Updates" hive="SOFTWARE" key="Policies\Microsoft\Windows\WindowsUpdate" valueName="ExcludeWUDriversInQualityUpdate" valueType="DWord" value="1" />
+    <Tweak name="Disable Feature Update Deferrals" category="Updates" hive="SOFTWARE" key="Policies\Microsoft\Windows\WindowsUpdate" valueName="DeferFeatureUpdatesPeriodInDays" valueType="DWord" value="365" />
+    <Tweak name="Disable Windows Update Medic Service" category="Updates" hive="SYSTEM" key="ControlSet001\Services\WaaSMedicSvc" valueName="Start" valueType="DWord" value="4" />
+    <Tweak name="GPU Priority for Gaming" category="Gaming" hive="SOFTWARE" key="Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" valueName="GPU Priority" valueType="DWord" value="8" />
+    <Tweak name="CPU Priority for Gaming" category="Gaming" hive="SOFTWARE" key="Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" valueName="Priority" valueType="DWord" value="6" />
+    <Tweak name="Disable Fullscreen Optimizations" category="Gaming" hive="SYSTEM" key="ControlSet001\Control\GraphicsDrivers" valueName="HwSchMode" valueType="DWord" value="2" />
+    <Tweak name="Disable USB Selective Suspend" category="Power" hive="SYSTEM" key="ControlSet001\Services\USB\DisableSelectiveSuspend" valueName="DisableSelectiveSuspend" valueType="DWord" value="1" />
+    <Tweak name="Disable Power Throttling" category="Power" hive="SYSTEM" key="ControlSet001\Control\Power\PowerThrottling" valueName="PowerThrottlingOff" valueType="DWord" value="1" />
+    <Tweak name="Disable Connected Standby" category="Power" hive="SYSTEM" key="ControlSet001\Control\Power" valueName="CsEnabled" valueType="DWord" value="0" />
+    <Tweak name="Disable Fast Startup" category="Power" hive="SYSTEM" key="ControlSet001\Control\Session Manager\Power" valueName="HiberbootEnabled" valueType="DWord" value="0" />
+    <Tweak name="Disable Bing Search in Start" category="Start Menu" hive="SOFTWARE" key="Policies\Microsoft\Windows\Explorer" valueName="DisableSearchBoxSuggestions" valueType="DWord" value="1" />
+    <Tweak name="Disable Start Menu Ads" category="Start Menu" hive="SOFTWARE" key="Policies\Microsoft\Windows\CloudContent" valueName="DisableWindowsConsumerFeatures" valueType="DWord" value="1" />
+    <Tweak name="Disable Recent Apps in Start" category="Start Menu" hive="SOFTWARE" key="Policies\Microsoft\Windows\Explorer" valueName="HideRecentlyAddedApps" valueType="DWord" value="1" />
+    <Tweak name="Disable Most Used Apps in Start" category="Start Menu" hive="SOFTWARE" key="Policies\Microsoft\Windows\Explorer" valueName="ShowOrHideMostUsedApps" valueType="DWord" value="2" />
+    <Tweak name="Disable Toast Notifications" category="Notifications" hive="SOFTWARE" key="Policies\Microsoft\Windows\CurrentVersion\PushNotifications" valueName="NoToastApplicationNotification" valueType="DWord" value="1" />
+    <Tweak name="Disable Lock Screen Notifications" category="Notifications" hive="SOFTWARE" key="Policies\Microsoft\Windows\CurrentVersion\PushNotifications" valueName="NoToastApplicationNotificationOnLockScreen" valueType="DWord" value="1" />
+    <Tweak name="Disable Notification Center" category="Notifications" hive="NTUSER" key="Software\Policies\Microsoft\Windows\Explorer" valueName="DisableNotificationCenter" valueType="DWord" value="1" />
+    <Tweak name="Disable Tip Notifications" category="Notifications" hive="SOFTWARE" key="Policies\Microsoft\Windows\CloudContent" valueName="DisableSoftLanding" valueType="DWord" value="1" />
+    <Tweak name="Disable Windows Defender" category="Defender" hive="SOFTWARE" key="Policies\Microsoft\Windows Defender" valueName="DisableAntiSpyware" valueType="DWord" value="1" />
+    <Tweak name="Disable Real-Time Protection" category="Defender" hive="SOFTWARE" key="Policies\Microsoft\Windows Defender\Real-Time Protection" valueName="DisableRealtimeMonitoring" valueType="DWord" value="1" />
+    <Tweak name="Disable Cloud Protection" category="Defender" hive="SOFTWARE" key="Policies\Microsoft\Windows Defender\Spynet" valueName="SpynetReporting" valueType="DWord" value="0" />
+    <Tweak name="Disable Sample Submission" category="Defender" hive="SOFTWARE" key="Policies\Microsoft\Windows Defender\Spynet" valueName="SubmitSamplesConsent" valueType="DWord" value="2" />
+    <Tweak name="Disable SmartScreen" category="Defender" hive="SOFTWARE" key="Policies\Microsoft\Windows\System" valueName="EnableSmartScreen" valueType="DWord" value="0" />
+    <Tweak name="Disable SmartScreen for Edge" category="Defender" hive="SOFTWARE" key="Policies\Microsoft\MicrosoftEdge\PhishingFilter" valueName="EnabledV9" valueType="DWord" value="0" />
+    <Tweak name="Disable Cortana" category="Cortana" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Search" valueName="AllowCortana" valueType="DWord" value="0" />
+    <Tweak name="Disable Cortana on Lock Screen" category="Cortana" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Search" valueName="AllowCortanaAboveLock" valueType="DWord" value="0" />
+    <Tweak name="Disable Search Highlights" category="Cortana" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Search" valueName="EnableDynamicContentInWSB" valueType="DWord" value="0" />
+    <Tweak name="Disable Web Search" category="Cortana" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Search" valueName="DisableWebSearch" valueType="DWord" value="1" />
+    <Tweak name="Disable Search History" category="Cortana" hive="SOFTWARE" key="Policies\Microsoft\Windows\Windows Search" valueName="AllowSearchToUseLocation" valueType="DWord" value="0" />
+    <Tweak name="Disable Edge First-Run Experience" category="Edge" hive="SOFTWARE" key="Policies\Microsoft\Edge" valueName="HideFirstRunExperience" valueType="DWord" value="1" />
+    <Tweak name="Disable Edge Desktop Shortcut" category="Edge" hive="SOFTWARE" key="Policies\Microsoft\EdgeUpdate" valueName="CreateDesktopShortcutDefault" valueType="DWord" value="0" />
+    <Tweak name="Disable Edge as Default PDF Reader" category="Edge" hive="SOFTWARE" key="Policies\Microsoft\Edge" valueName="DefaultBrowserSettingEnabled" valueType="DWord" value="0" />
+    <Tweak name="Disable Edge Background Running" category="Edge" hive="SOFTWARE" key="Policies\Microsoft\Edge" valueName="BackgroundModeEnabled" valueType="DWord" value="0" />
+    <Tweak name="Disable Edge Sidebar" category="Edge" hive="SOFTWARE" key="Policies\Microsoft\Edge" valueName="HubsSidebarEnabled" valueType="DWord" value="0" />
+    <Tweak name="Disable Reserved Storage" category="Misc" hive="SOFTWARE" key="Microsoft\Windows\CurrentVersion\ReserveManager" valueName="ShippedWithReserves" valueType="DWord" value="0" />
+    <Tweak name="Disable Clipboard History" category="Misc" hive="SOFTWARE" key="Policies\Microsoft\Windows\System" valueName="AllowClipboardHistory" valueType="DWord" value="0" />
+    <Tweak name="Verbose Boot Messages" category="Misc" hive="SOFTWARE" key="Microsoft\Windows\CurrentVersion\Policies\System" valueName="VerboseStatus" valueType="DWord" value="1" />
+    <Tweak name="Disable Shake to Minimize" category="Misc" hive="SOFTWARE" key="Policies\Microsoft\Windows\Explorer" valueName="NoWindowMinimizingShortcuts" valueType="DWord" value="1" />
+    <Tweak name="Enable Long Paths" category="Misc" hive="SYSTEM" key="ControlSet001\Control\FileSystem" valueName="LongPathsEnabled" valueType="DWord" value="1" />
+    <Tweak name="Disable NumLock on Boot" category="Misc" hive="DEFAULT" key=".DEFAULT\Control Panel\Keyboard" valueName="InitialKeyboardIndicators" valueType="String" value="0" />
+    <Tweak name="Enable NumLock on Boot" category="Misc" hive="DEFAULT" key=".DEFAULT\Control Panel\Keyboard" valueName="InitialKeyboardIndicators" valueType="String" value="2" />
+    <Tweak name="Disable Windows Ink Workspace" category="Misc" hive="SOFTWARE" key="Policies\Microsoft\WindowsInkWorkspace" valueName="AllowWindowsInkWorkspace" valueType="DWord" value="0" />
+    <Tweak name="Disable OneDrive Setup on Login" category="Misc" hive="SOFTWARE" key="Policies\Microsoft\Windows\OneDrive" valueName="DisableFileSyncNGSC" valueType="DWord" value="1" />
+    <Tweak name="Disable Cortana Button on Taskbar" category="Misc" hive="NTUSER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" valueName="ShowCortanaButton" valueType="DWord" value="0" />
+  </RegistryTweaks>
+  <Drivers />
+</TrimKitPreset>
