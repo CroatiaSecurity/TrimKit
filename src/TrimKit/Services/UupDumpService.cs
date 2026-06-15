@@ -425,159 +425,142 @@ public class UupDumpService : IUupDumpService
     }
 
     /// <summary>
-    /// Downloads the UUP dump converter package (aria2 + wimlib + scripts) and runs it
-    /// to produce a proper bootable ISO. This is the same process as downloading from
-    /// the UUP dump website.
+    /// Downloads UUP files directly (no aria2c) and converts ESD to WIM using DISM.
+    /// Exports each index individually, skipping metadata indexes.
     /// </summary>
     public async Task DownloadWithConverterAsync(string updateId, string edition, string language, string outputIsoPath,
         IProgress<(int percent, string status)>? progress = null, CancellationToken ct = default, bool skipCumulativeUpdate = false)
     {
-        var workDir = Path.Combine(Path.GetTempPath(), "TrimKit_UUP_" + updateId[..8]);
+        var workDir = Path.Combine(Path.GetTempPath(), "TrimKit_DL_" + updateId[..8]);
         Directory.CreateDirectory(workDir);
 
         try
         {
-            // Step 1: Download the converter package from UUP dump
-            progress?.Report((5, "Downloading UUP dump converter package..."));
-            _logService.Log(Models.LogLevel.Info, "Fetching converter package from UUP dump...");
+            // Step 1: Get download links
+            progress?.Report((5, "Getting file list from UUP dump..."));
+            var package = await GetDownloadLinksAsync(updateId, edition, language, ct);
 
-            var downloadPageUrl = $"https://uupdump.net/get.php?id={updateId}&pack={language}&edition={edition}";
-            var packageUrl = $"https://uupdump.net/get.php?id={updateId}&pack={language}&edition={edition}&autodl=2";
+            if (package.Files.Count == 0)
+                throw new InvalidOperationException("No files available. Build may have expired.");
 
-            // Download the zip package
-            var zipPath = Path.Combine(workDir, "uup_package.zip");
-            progress?.Report((8, "Downloading converter scripts + aria2c + wimlib..."));
+            // Filter files — only get ESD files (the actual image)
+            var esdFiles = package.Files.Where(f =>
+                f.FileName.EndsWith(".esd", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrEmpty(f.Url)
+            ).ToList();
 
-            using var response = await _httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-
-            if (!response.IsSuccessStatusCode)
+            // Also get CAB files if no ESDs
+            if (esdFiles.Count == 0)
             {
-                // Fallback: try the direct download API approach
-                _logService.Log(Models.LogLevel.Warning, $"Package download returned {response.StatusCode}. Trying alternative...");
-                throw new InvalidOperationException(
-                    $"UUP dump package download failed (HTTP {response.StatusCode}). " +
-                    $"Try downloading manually from: {downloadPageUrl}");
+                esdFiles = package.Files.Where(f =>
+                    (f.FileName.EndsWith(".cab", StringComparison.OrdinalIgnoreCase) ||
+                     f.FileName.EndsWith(".esd", StringComparison.OrdinalIgnoreCase)) &&
+                    !string.IsNullOrEmpty(f.Url)
+                ).ToList();
             }
 
-            await using (var stream = await response.Content.ReadAsStreamAsync(ct))
-            await using (var fs = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+            if (skipCumulativeUpdate)
             {
-                await stream.CopyToAsync(fs, ct);
+                esdFiles = esdFiles.Where(f =>
+                    !f.FileName.Contains("cumulative", StringComparison.OrdinalIgnoreCase) &&
+                    !f.FileName.EndsWith(".msu", StringComparison.OrdinalIgnoreCase)
+                ).ToList();
             }
 
-            // Step 2: Extract the package
-            progress?.Report((15, "Extracting converter package..."));
-            var extractDir = Path.Combine(workDir, "converter");
-            if (Directory.Exists(extractDir))
-                Directory.Delete(extractDir, true);
-            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractDir);
+            if (esdFiles.Count == 0)
+                throw new InvalidOperationException("No ESD/CAB files found in the download package.");
 
-            // Step 3: Find and run the converter script
-            progress?.Report((20, "Starting UUP conversion (aria2c download + wimlib assembly)..."));
-
-            // The package contains a CMD script (uup_download_windows.cmd or similar)
-            var cmdScript = Directory.GetFiles(extractDir, "*.cmd", SearchOption.AllDirectories)
-                .FirstOrDefault(f => f.Contains("download", StringComparison.OrdinalIgnoreCase))
-                ?? Directory.GetFiles(extractDir, "*.cmd", SearchOption.AllDirectories).FirstOrDefault();
-
-            if (cmdScript == null)
-            {
-                throw new InvalidOperationException("No converter script found in the UUP dump package.");
-            }
-
-            _logService.Log(Models.LogLevel.Info, $"Running converter: {Path.GetFileName(cmdScript)}");
-
-            // Run the converter script
-            var scriptDir = Path.GetDirectoryName(cmdScript)!;
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = $"/c \"{cmdScript}\"",
-                WorkingDirectory = scriptDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = new System.Diagnostics.Process { StartInfo = psi };
-            process.Start();
-
-            // Read output in real-time for progress
-            var lastPercent = 20;
-            while (!process.StandardOutput.EndOfStream)
+            // Step 2: Download ESD files
+            for (int i = 0; i < esdFiles.Count; i++)
             {
                 ct.ThrowIfCancellationRequested();
-                var line = await process.StandardOutput.ReadLineAsync(ct);
-                if (string.IsNullOrWhiteSpace(line)) continue;
+                var file = esdFiles[i];
+                var filePath = Path.Combine(workDir, file.FileName);
+                var pct = 5 + (int)((i + 1.0) / esdFiles.Count * 60);
 
-                // Parse aria2c progress or wimlib progress
-                if (line.Contains('%'))
+                // Skip if already downloaded
+                if (File.Exists(filePath) && file.Size > 0 && new FileInfo(filePath).Length == file.Size)
                 {
-                    var match = System.Text.RegularExpressions.Regex.Match(line, @"(\d+)%");
-                    if (match.Success && int.TryParse(match.Groups[1].Value, out var pct))
-                    {
-                        lastPercent = 20 + (int)(pct * 0.7); // Map 0-100 to 20-90
-                        progress?.Report((lastPercent, line.Trim().Length > 80 ? line.Trim()[..80] : line.Trim()));
-                    }
+                    progress?.Report((pct, $"Cached: {file.FileName}"));
+                    continue;
                 }
-                else if (line.Contains("ERROR", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logService.Log(Models.LogLevel.Error, $"Converter: {line.Trim()}");
-                    progress?.Report((lastPercent, $"ERROR: {line.Trim()}"));
-                }
-                else if (line.Contains("Creating ISO", StringComparison.OrdinalIgnoreCase) ||
-                         line.Contains("Done", StringComparison.OrdinalIgnoreCase))
-                {
-                    progress?.Report((92, line.Trim()));
-                }
+
+                progress?.Report((pct, $"Downloading [{i + 1}/{esdFiles.Count}]: {file.FileName} ({file.SizeDisplay})"));
+                await DownloadFileAsync(file.Url, filePath, ct);
             }
 
-            await process.WaitForExitAsync(ct);
+            // Step 3: Convert ESD to WIM
+            progress?.Report((70, "Converting ESD to WIM..."));
+            var mainEsd = Directory.GetFiles(workDir, "*.esd")
+                .OrderByDescending(f => new FileInfo(f).Length)
+                .FirstOrDefault();
 
-            if (process.ExitCode != 0)
+            if (mainEsd == null)
+                throw new InvalidOperationException("No ESD file found after download.");
+
+            var wimOutput = Path.ChangeExtension(outputIsoPath, ".wim");
+            _logService.Log(Models.LogLevel.Info, $"Converting: {Path.GetFileName(mainEsd)} → {Path.GetFileName(wimOutput)}");
+
+            // Get image info to find valid indexes
+            var infoOutput = await RunDismQuietAsync($"/Get-WimInfo /WimFile:\"{mainEsd}\"");
+            var indexMatches = System.Text.RegularExpressions.Regex.Matches(infoOutput, @"Index : (\d+)");
+            var indexes = indexMatches.Select(m => int.Parse(m.Groups[1].Value)).ToList();
+
+            if (indexes.Count == 0)
+                throw new InvalidOperationException("Could not read image indexes from ESD.");
+
+            // Skip index 1 if it looks like metadata (very small or named "Windows Setup")
+            var startIdx = 0;
+            if (indexes.Count > 1 && infoOutput.Contains("Windows Setup", StringComparison.OrdinalIgnoreCase))
+                startIdx = 1;
+
+            var exportedCount = 0;
+            for (int i = startIdx; i < indexes.Count; i++)
             {
-                var stderr = await process.StandardError.ReadToEndAsync(ct);
-                throw new InvalidOperationException($"Converter failed (exit {process.ExitCode}): {stderr.Split('\n').FirstOrDefault()?.Trim()}");
+                var idx = indexes[i];
+                var pct = 70 + (int)((i - startIdx + 1.0) / (indexes.Count - startIdx) * 25);
+                progress?.Report((pct, $"DISM: Exporting index {idx} ({i - startIdx + 1}/{indexes.Count - startIdx})..."));
+
+                var success = await RunDismWithProgressAsync(
+                    $"/Export-Image /SourceImageFile:\"{mainEsd}\" /SourceIndex:{idx} /DestinationImageFile:\"{wimOutput}\" /Compress:Max",
+                    progress, pct, pct + 5, ct);
+
+                if (success) exportedCount++;
+                else _logService.Log(Models.LogLevel.Warning, $"Could not export index {idx} (may be encrypted/delta)");
             }
 
-            // Step 4: Find the produced ISO and move it to the target path
-            progress?.Report((95, "Locating output ISO..."));
+            if (exportedCount == 0)
+                throw new InvalidOperationException(
+                    "Could not export any image index. The ESD may use delta compression " +
+                    "which requires wimlib (not available). Try a different build or download " +
+                    "the ISO from: https://uupdump.net");
 
-            var producedIso = Directory.GetFiles(scriptDir, "*.iso", SearchOption.AllDirectories).FirstOrDefault()
-                ?? Directory.GetFiles(extractDir, "*.iso", SearchOption.AllDirectories).FirstOrDefault();
-
-            if (producedIso != null)
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(outputIsoPath)!);
-                File.Move(producedIso, outputIsoPath, overwrite: true);
-                var isoSize = new FileInfo(outputIsoPath).Length / (1024.0 * 1024.0 * 1024.0);
-                progress?.Report((100, $"ISO saved: {outputIsoPath} ({isoSize:F2} GB)"));
-                _logService.Log(Models.LogLevel.Success, $"ISO created: {outputIsoPath} ({isoSize:F2} GB)");
-            }
-            else
-            {
-                // Maybe it produced a WIM instead
-                var producedWim = Directory.GetFiles(scriptDir, "*.wim", SearchOption.AllDirectories).FirstOrDefault();
-                if (producedWim != null)
-                {
-                    var wimDest = Path.ChangeExtension(outputIsoPath, ".wim");
-                    File.Move(producedWim, wimDest, overwrite: true);
-                    progress?.Report((100, $"WIM saved (no ISO builder available): {wimDest}"));
-                    _logService.Log(Models.LogLevel.Success, $"WIM created: {wimDest}");
-                }
-                else
-                {
-                    throw new InvalidOperationException("Converter finished but no ISO or WIM was produced. Check that aria2c downloaded all files.");
-                }
-            }
+            var wimSize = new FileInfo(wimOutput).Length / (1024.0 * 1024.0 * 1024.0);
+            progress?.Report((100, $"Done! WIM saved: {Path.GetFileName(wimOutput)} ({wimSize:F2} GB)"));
+            _logService.Log(Models.LogLevel.Success, $"Created: {wimOutput} ({wimSize:F2} GB, {exportedCount} edition(s))");
         }
         finally
         {
-            // Cleanup temp files
-            try { Directory.Delete(workDir, true); } catch { }
+            // Don't delete workDir — ESD cache can be reused
         }
+    }
+
+    private async Task<string> RunDismQuietAsync(string arguments)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "dism.exe",
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        using var process = new System.Diagnostics.Process { StartInfo = psi };
+        process.Start();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        return output;
     }
 
     private static List<WindowsEdition> GetCommonEditions()
